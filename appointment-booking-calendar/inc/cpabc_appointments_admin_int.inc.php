@@ -290,7 +290,7 @@ $nonce_un = wp_create_nonce( 'uname_abc' );
  </div>
 
  
- <input type="hidden" name="form_structure" id="form_structure" size="180" value="<?php echo str_replace("\r","",str_replace("\n","",esc_attr(cpabc_appointment_cleanJSON(cpabc_get_option('form_structure', CPABC_APPOINTMENTS_DEFAULT_form_structure))))); ?>" />
+ <input type="hidden" name="form_structure" id="form_structure" size="180" value="<?php echo esc_attr(str_replace("\r","",str_replace("\n","",esc_attr(cpabc_appointment_cleanJSON(cpabc_get_option('form_structure', CPABC_APPOINTMENTS_DEFAULT_form_structure)))))); ?>" />
  
  <input type="hidden" name="vs_text_is_required" value="<?php echo esc_attr(cpabc_get_option('vs_text_is_required', CPABC_APPOINTMENTS_DEFAULT_vs_text_is_required)); ?>" />
  <input type="hidden" name="vs_text_is_email" value="<?php echo esc_attr(cpabc_get_option('vs_text_is_email', CPABC_APPOINTMENTS_DEFAULT_vs_text_is_email)); ?>" />
@@ -428,10 +428,10 @@ also support integration with other payment gateways.</p><br />
         </tr>  
         
         <tr valign="top">
-        <th scope="row"><?php _e('Request address at PayPal','appointment-booking-calendar'); ?></th>
+        <th scope="row"><?php esc_html_e('Request address at PayPal','appointment-booking-calendar'); ?></th>
         <td><select name="request_address">
-             <option value="0" <?php if (cpabc_get_option('request_address','0') != '1') echo 'selected'; ?>><?php _e('No','appointment-booking-calendar'); ?></option> 
-             <option value="1" <?php if (cpabc_get_option('request_address','0') == '1') echo 'selected'; ?>><?php _e('Yes','appointment-booking-calendar'); ?></option> 
+             <option value="0" <?php if (cpabc_get_option('request_address','0') != '1') echo 'selected'; ?>><?php esc_html_e('No','appointment-booking-calendar'); ?></option> 
+             <option value="1" <?php if (cpabc_get_option('request_address','0') == '1') echo 'selected'; ?>><?php esc_html_e('Yes','appointment-booking-calendar'); ?></option> 
             </select>
         </td>
         </tr>           
@@ -659,7 +659,7 @@ also support integration with other payment gateways.</p><br />
   <h3 class='hndle' style="padding:5px;"><span>Note</span></h3>
   <div class="inside">
    To insert the calendar booking form in a post/page, use the dedicated icon 
-   <?php print '<img hspace="5" src="'.plugins_url('../images/cpabc_apps.gif', __FILE__).'" alt="'.__('Insert Appointment Booking Calendar','appointment-booking-calendar').'" />';     ?>
+   <?php print '<img hspace="5" src="'.esc_attr(plugins_url('../images/cpabc_apps.gif', __FILE__)).'" alt="'.esc_attr(__('Insert Appointment Booking Calendar','appointment-booking-calendar')).'" />';     ?>
    which has been added to your Upload/Insert Menu, just below the title of your Post/Page.
    <br /><br />
   </div>

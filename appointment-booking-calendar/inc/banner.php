@@ -74,20 +74,20 @@ if(!function_exists( 'codepeople_add_promote_banner' ))
 					</div>
 					<div class="codepeople-review-banner-content">
 						<div class="codepeople-review-banner-text">
-							<p><strong>Want to help to the development of the "<?php print $plugin_data[ 'plugin_name' ]; ?>" plugin?</strong> The main features of this plugin are provided free of charge. We need your help to continue developing it and adding new features. If you want to help with the development please <span style="color:#1582AB;font-weight:bold;">add a review to support it</span>. Thank you!</p>
+							<p><strong>Want to help to the development of the "<?php print esc_html($plugin_data[ 'plugin_name' ]); ?>" plugin?</strong> The main features of this plugin are provided free of charge. We need your help to continue developing it and adding new features. If you want to help with the development please <span style="color:#1582AB;font-weight:bold;">add a review to support it</span>. Thank you!</p>
 						</div>
 						<div class="codepeople-review-banner-buttons">
 							<form method="post" target="_blank">
 								<button class="main-button" onclick="jQuery(this).closest('[id=\'codepeople-review-banner\']').hide();">Publish a Review</button>
 								<input type="hidden" name="codepeople_promote_banner_plugin" value="<?php echo esc_attr($plugin_slug); ?>" />
 								<input type="hidden" name="codepeople_promote_banner_action" value="set-review" />
-								<input type="hidden" name="codepeople_promote_banner_nonce" value="<?php echo wp_create_nonce(__FILE__); ?>" />
+								<input type="hidden" name="codepeople_promote_banner_nonce" value="<?php echo esc_attr(wp_create_nonce(__FILE__)); ?>" />
 							</form>
 							<form method="post">
 								<button class="no-thank-button">No Thanks</button>
 								<input type="hidden" name="codepeople_promote_banner_plugin" value="<?php echo esc_attr($plugin_slug); ?>" />
 								<input type="hidden" name="codepeople_promote_banner_action" value="not-thanks" />
-								<input type="hidden" name="codepeople_promote_banner_nonce" value="<?php echo wp_create_nonce(__FILE__); ?>" />
+								<input type="hidden" name="codepeople_promote_banner_nonce" value="<?php echo esc_attr(wp_create_nonce(__FILE__)); ?>" />
 							</form>
 							<div style="clear:both;display:block;"></div>
 						</div>

@@ -242,11 +242,11 @@ $nonce_un = wp_create_nonce( 'uname_abc_bklist' );
 <?php if (cpabc_appointment_is_administrator()) { ?>     
   <tr>
    <td align="right">Added by:</td>
-   <td><select name="added_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.$user->ID.'"'.($user->ID==cpabc_get_get_param("added_by")?' selected':'').'>'.$user->user_login.'</option>'; ?></select></td>
+   <td><select name="added_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.esc_attr($user->ID).'"'.($user->ID==cpabc_get_get_param("added_by")?' selected':'').'>'.esc_html($user->user_login).'</option>'; ?></select></td>
    <td align="right">Edited by:</td>
-   <td><select name="edited_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.$user->ID.'"'.($user->ID==cpabc_get_get_param("edited_by")?' selected':'').'>'.$user->user_login.'</option>'; ?></select></td>
+   <td><select name="edited_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.esc_attr($user->ID).'"'.($user->ID==cpabc_get_get_param("edited_by")?' selected':'').'>'.esc_html($user->user_login).'</option>'; ?></select></td>
    <td align="right">Cancelled by:</td>
-   <td><select name="cancelled_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.$user->ID.'"'.($user->ID==cpabc_get_get_param("cancelled_by")?' selected':'').'>'.$user->user_login.'</option>'; ?></select></td>
+   <td><select name="cancelled_by"><option value="">--- all users ---</option><?php foreach ($users as $user) echo '<option value="'.esc_attr($user->ID).'"'.($user->ID==cpabc_get_get_param("cancelled_by")?' selected':'').'>'.esc_html($user->user_login).'</option>'; ?></select></td>
   </tr>
   <tr>
    <td align="right">Status:</td>  
@@ -328,7 +328,7 @@ echo paginate_links(  array(
 		<td><?php echo str_replace('--br />','<br />',str_replace('<','&lt;',str_replace('<br />','--br />',$events[$i]->description))); ?></td>
 		<td><?php echo intval($events[$i]->quantity); ?></td>
         <td <?php if ($events[$i]->is_cancelled == '1') { ?>style="color:#faabbb;"<?php } ?> class="cpnopr">
-		  <input type="button" name="caledit_<?php echo $events[$i]->id; ?>" value="Edit" onclick="cp_editItem(<?php echo intval($events[$i]->id); ?>,<?php echo intval($events[$i]->appointment_calendar_id); ?>);" />
+		  <input type="button" name="caledit_<?php echo esc_attr($events[$i]->id); ?>" value="Edit" onclick="cp_editItem(<?php echo intval($events[$i]->id); ?>,<?php echo intval($events[$i]->appointment_calendar_id); ?>);" />
 		  <?php if ($events[$i]->is_cancelled == '1') { ?>
 		  <input type="button" name="calcancel_<?php echo intval($events[$i]->id); ?>" value="Un-Cancel" onclick="cp_uncancelItem(<?php echo intval($events[$i]->id); ?>);" />
 		  <?php } else { ?>
@@ -355,18 +355,23 @@ echo paginate_links(  array(
              
              if (is_array($params) && (array_key_exists("txnid",$params) || (isset($params["payment_type"]) && ($params["payment_type"] != 'PayPal' || isset($params["txnid"])))))
              {
-                 echo '<hr /><span class="abcpaid">'.__('Paid.','cpabc');
+                 echo '<hr /><span class="abcpaid">';
+                 esc_html_e('Paid.','appointment-booking-calendar');
                  if (isset($params["payment_type"]) && ($params["payment_type"] != 'PayPal' || isset($params["txnid"]))) echo esc_html($params["payment_type"]).".";
-                 if (isset($params["txnid"])) echo __('Payment ID','cpabc').": ".esc_html($params["txn_id"]?$params["txn_id"]:' --- ');
+                 if (isset($params["txnid"])) { esc_html_e('Payment ID','appointment-booking-calendar'); echo ": ".esc_html($params["txn_id"]?$params["txn_id"]:' --- '); }
                  echo '</span>';
                  ?><br /><input type="button" name="calpaide_<?php echo intval($events[$i]->id); ?>" value="Mark as unpaid" onclick="cp_paidMessageItem(<?php echo intval($events[$i]->id); ?>,0);" /><?php
              }
              else   
              {
-                 echo '<hr /><span class="abcunpaid">'.__('Payment: not confirmed so far','cpabc').'</span>';
+                 echo '<hr /><span class="abcunpaid">';
+                 esc_html_e('Payment: not confirmed so far','appointment-booking-calendar');
+                 echo '</span>';
                  ?><br /><input type="button" name="calpaide_<?php echo intval($events[$i]->id); ?>" value="Mark as paid" onclick="cp_paidMessageItem(<?php echo intval($events[$i]->id); ?>,1);" /><?php
              }
-              echo '<hr /><span class="abcsubdate">'.__('Submission date:','cpabc').'</span><br /><strong>'. esc_html(date($format,strtotime($events[$i]->time))).'</strong>';
+              echo '<hr /><span class="abcsubdate">';
+              esc_html_e('Submission date:','appointment-booking-calendar');
+              echo '</span><br /><strong>'. esc_html(date($format,strtotime($events[$i]->time))).'</strong>';
 		  ?>
 		  </SPAN>
 		</td>		

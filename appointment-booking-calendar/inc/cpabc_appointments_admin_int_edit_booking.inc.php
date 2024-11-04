@@ -192,9 +192,9 @@ if (cpabc_appointment_is_administrator() || $mycalendarrows[0]->conwer == $curre
         ?></th>
         <td>
           <?php if (!is_array($value) && (strpos($value,"\n") > 0 || strlen($value) > 80)) { ?>
-          <textarea cols="85" name="<?php echo $item; ?>"><?php echo esc_textarea($value); ?></textarea>
+          <textarea cols="85" name="<?php echo esc_attr($item); ?>"><?php echo esc_textarea($value); ?></textarea>
           <?php } else { ?>
-          <input type="text" name="<?php echo $item; ?>" value="<?php echo esc_attr(is_array($value) ? implode(",", $value) : esc_attr($value)); ?>" />
+          <input type="text" name="<?php echo esc_attr($item); ?>" value="<?php echo esc_attr(is_array($value) ? implode(",", $value) : esc_attr($value)); ?>" />
           <?php } ?>
         </td>
         </tr>
@@ -203,7 +203,7 @@ if (cpabc_appointment_is_administrator() || $mycalendarrows[0]->conwer == $curre
                else
                {  
                   if (false) {
-                      ?><input type="hidden" name="<?php echo $item; ?>" value="<?php echo esc_attr(serialize($value)); ?>" /><?php
+                      ?><input type="hidden" name="<?php echo esc_attr($item); ?>" value="<?php echo esc_attr(serialize($value)); ?>" /><?php
                   }
                }
             }

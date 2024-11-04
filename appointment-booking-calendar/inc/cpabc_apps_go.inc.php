@@ -64,9 +64,9 @@ function cpabc_appointments_main_initialization()
         {
             $date = date("Y-m-d H:i",strtotime($_GET["code"]));
             if (date("Y",strtotime($_GET["code"])) == '1970')
-                echo '<span style="color:#DD0000;">Error! Invalid date format!. Calculated min date for today: '.$date.'</span>';
+                echo '<span style="color:#DD0000;">Error! Invalid date format!. Calculated min date for today: '.esc_html($date).'</span>';
             else
-                echo '<span style="color:#008800;">Calculated min date for today: '.$date.'</span>';
+                echo '<span style="color:#008800;">Calculated min date for today: '.esc_html($date).'</span>';
         }
         exit;
     }
@@ -79,10 +79,10 @@ function cpabc_appointments_main_initialization()
         {
             $date = date("Y-m-d H:i",strtotime($_GET["code"]));
             if (date("Y",strtotime($_GET["code"])) == '1970')
-                echo '<span style="color:#DD0000;">Error! Invalid date format!. Calculated max date for today: '.$date.'</span>';
+                echo '<span style="color:#DD0000;">Error! Invalid date format!. Calculated max date for today: '.esc_html($date).'</span>';
             else
             {
-                echo '<span style="color:#008800;">Calculated max date for today: '.$date.'</span>';                
+                echo '<span style="color:#008800;">Calculated max date for today: '.esc_html($date).'</span>';                
                 $date2 = date("Y-m-d H:i",strtotime($_GET["code2"]));
                 if ($date2 >= $date)
                      echo '<br /><span style="color:#DD0000;">Error! Max date is smaller than min date, so no days will be available in the calendar.</span>';
@@ -957,11 +957,11 @@ function cpabc_appointments_calendar_load2() {
         
         if (($currentd > $min_date) || (is_admin() && current_user_can('edit_posts')))
         {
-            echo $row[CPABC_TDEAPP_DATA_ID]."\n";
+            echo esc_html($row[CPABC_TDEAPP_DATA_ID])."\n";
                         
             echo intval($d1[0]).",".intval($d1[1]).",".intval($d1[2])."\n";
-            echo intval($d2[0]).":".($d2[1])."\n";
-            echo ($row["quantity"]?$row["quantity"]:'1')."\n";
+            echo intval($d2[0]).":".esc_html($d2[1])."\n";
+            echo esc_html($row["quantity"]?$row["quantity"]:'1')."\n";
             if (is_admin() && current_user_can('edit_posts'))
             {
                 echo $row[CPABC_TDEAPP_DATA_TITLE]."\n";
