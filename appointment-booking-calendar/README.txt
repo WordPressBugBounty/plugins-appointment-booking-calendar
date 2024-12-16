@@ -4,7 +4,7 @@ Donate link: https://abc.dwbooster.com/download
 Tags: appointment,booking,calendar,appointment calendar,booking calendar
 Requires at least: 3.0.5
 Tested up to: 6.7
-Stable tag: 1.3.90
+Stable tag: 1.3.91
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -1188,7 +1188,10 @@ Please note that the pro features aren't advised as part of the free plugin in t
 = 1.3.90 =
 * Compatible with WP 6.7
 
+= 1.3.91 =
+* Captcha update
+
 == Upgrade Notice ==
 
-= 1.3.90 =
-* Compatible with WP 6.7
+= 1.3.91 =
+* Captcha update
