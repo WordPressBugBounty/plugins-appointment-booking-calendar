@@ -528,9 +528,9 @@ color:#ffffff;
 }
 .yui-calcontainer .calheader a{text-decoration:none}
 #listcal1{padding:5px 0px 5px 0px}
-#cp_contactformpp_pform .yui-calendar{width:100%}
+#cp_tslotsbooking_pform_abc .yui-calendar{width:100%}
 
-#cp_contactformpp_pform .yui-calcontainer tr td,#cp_contactformpp_pform .yui-calcontainer tr th{padding:5px 0px}
+#cp_tslotsbooking_pform_abc .yui-calcontainer tr td,#cp_tslotsbooking_pform_abc .yui-calcontainer tr th{padding:5px 0px}
 .yui-calendar a{box-shadow:none !important}
 .yui-panel-container a {
 -webkit-transition: all 0ms !important;
