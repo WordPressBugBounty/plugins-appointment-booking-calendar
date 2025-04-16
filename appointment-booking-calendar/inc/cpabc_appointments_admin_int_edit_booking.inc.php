@@ -28,7 +28,7 @@ function cpabcedit_verify_nonce() {
 
 if (cpabc_appointment_is_administrator() || $mycalendarrows[0]->conwer == $current_user->ID) {
     
-    $event = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." WHERE id=".esc_sql($_GET["edit"]) );
+    $event = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." WHERE id=".intval($_GET["edit"]) );
     $event = $event[0];
        
     if ($event->reference != '')

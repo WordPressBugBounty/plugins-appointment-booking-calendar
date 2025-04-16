@@ -406,10 +406,14 @@ function cpabc_process_cancel_go_appointment()
 {
     global $wpdb;
     $itemnumber = base64_decode($_GET["i"]);
-    if (is_numeric($itemnumber))
+    $cpabc_pcode = base64_decode(get_option('CPABC_PCODE',""));    
+    if (is_numeric($itemnumber) && $_GET["verify"] == substr(md5($cpabc_pcode.$itemnumber),0,10))
     {
-        $wpdb->query( "DELETE FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." WHERE id=".$itemnumber );
+        $wpdb->query( "DELETE FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." WHERE id=".intval($itemnumber) );
         header("Location: ".CPABC_APPOINTMENTS_DEFAULT_ON_CANCEL_REDIRECT_TO);
+        exit;
+    } else {
+        echo 'Wrong cancellation link';
         exit;
     }
 }
@@ -494,7 +498,8 @@ function cpabc_process_ready_to_go_appointment($itemnumber, $payer_email = "", $
            $email_content2 = str_replace("%INFORMATION%", $information, $email_content2);
 
            $itemnumberdb = $wpdb->insert_id;
-           $cancel_link = cpabc_appointment_get_FULL_site_url().'/?cpabc_c=1&i='.base64_encode($itemnumberdb).'&a=1';
+           $cpabc_pcode = base64_decode(get_option('CPABC_PCODE',""));
+           $cancel_link = cpabc_appointment_get_FULL_site_url().'/?cpabc_c=1&i='.base64_encode($itemnumberdb).'&verify='.substr(md5($cpabc_pcode.$itemnumberdb),0,10).'&a=1';
 
            $email_content1 = str_replace("%CANCEL%", $cancel_link, $email_content1);
            $email_content2 = str_replace("%CANCEL%", $cancel_link, $email_content2);
@@ -684,9 +689,11 @@ function cpabc_clean_and_sanitize ($str)
         return '';
     }
     $str = (string) $str; 
+    $str = str_replace('%CA','#@*cpabc',$str);
     $filtered = wp_check_invalid_utf8( $str );    
     while ( preg_match( '/%[a-f0-9]{2}/i', $filtered, $match ) ) 
         $filtered = str_replace( $match[0], '', $filtered );
+    $filtered = str_replace('#@*cpabc','%CA',$filtered); 
     return trim($filtered);
 }
 
