@@ -4,8 +4,23 @@
   $custom_styles = sanitize_textarea_field(base64_decode(get_option('CP_ABC_CSS', ''))); 
   if ($custom_styles != '')
       echo '<style type="text/css">'.$custom_styles.'</style>';    
+  
+  if (!is_admin()) {
+      $full_url = get_permalink();
+  
+      // Parse the URL to get the path
+      $path = parse_url($full_url, PHP_URL_PATH);
+      if ($path == "") $path = $full_url;
+      
+      // Add a random GET parameter to the path to prevent cache
+      $cache_buster = rand(100000, 999999);
+      $path .= (strpos($path, '?') === false ? '?' : '&') . 'abcnocache=' . $cache_buster;
+  }
+  else $path = "";  
+
+  
 ?>
-<form class="cpp_form" id="cp_abcform_pform" name="FormEdit" action="<?php get_site_url(); ?>" method="post" onsubmit="return doValidate(this);">
+<form class="cpp_form" id="cp_abcform_pform" name="FormEdit" action="<?php echo esc_attr($path); ?>" method="post" onsubmit="return doValidate(this);">
 <input name="_wpnonce" type="hidden" value="<?php echo esc_attr($nonce_un); ?>" />
 <input name="cpabc_appointments_post" type="hidden" value="1" /><input name="cpabc_appointments_utime" type="hidden"  value="" />
 <?php 
