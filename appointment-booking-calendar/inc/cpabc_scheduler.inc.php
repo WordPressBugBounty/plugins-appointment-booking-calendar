@@ -20,7 +20,7 @@
 
   
 ?>
-<form class="cpp_form" id="cp_abcform_pform" name="FormEdit" action="<?php echo esc_attr($path); ?>" method="post" onsubmit="return doValidate(this);">
+<form class="cpp_form no-prefetch" id="cp_abcform_pform" name="FormEdit" action="<?php echo esc_attr($path); ?>" method="post" onsubmit="return doValidate(this);">
 <input name="_wpnonce" type="hidden" value="<?php echo esc_attr($nonce_un); ?>" />
 <input name="cpabc_appointments_post" type="hidden" value="1" /><input name="cpabc_appointments_utime" type="hidden"  value="" />
 <?php 

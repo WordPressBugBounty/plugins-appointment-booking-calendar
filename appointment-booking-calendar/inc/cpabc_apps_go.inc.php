@@ -838,7 +838,7 @@ function cpabc_appointments_calendar_load() {
     $row = $wpdb->get_results($query,ARRAY_A);
     if ($row[0])
     {
-        $min_date = strtotime($row[0]["calendar_mindate"]);
+        $min_date = strtotime($row[0]["calendar_mindate"]." - 7 days");
         
         // New header to mark init of calendar output
         echo '--***--***--***---!';
