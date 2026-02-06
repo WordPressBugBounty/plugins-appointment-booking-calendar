@@ -122,9 +122,10 @@ $nonce_un = wp_create_nonce( 'uname_abc' );
         <tr valign="top">        
         <th scope="row">Calendar visual theme</th>
         <td>
-             <?php $value = cpabc_get_option('calendar_theme','modern/'); ?>
+             <?php $value = cpabc_get_option('calendar_theme','friendly/'); ?>
              <select name="calendar_theme">     
-               <option value="modern/" <?php if ($value == 'modern/') echo ' selected="selected"'; ?>>Default - Modern</option>      
+             <option value="friendly/" <?php if ($value == 'friendly/') echo ' selected="selected"'; ?>>Default - Friendly</option>      
+               <option value="modern/" <?php if ($value == 'modern/') echo ' selected="selected"'; ?>>Modern</option>      
                <option value="modern2/" <?php if ($value == 'modern2/') echo ' selected="selected"'; ?>>Modern II</option>  
                <option value="rounded/" <?php if ($value == 'rounded/') echo ' selected="selected"'; ?>>Rounded</option>               
                <option value="" <?php if ($value == '') echo ' selected="selected"'; ?>>Classic</option>

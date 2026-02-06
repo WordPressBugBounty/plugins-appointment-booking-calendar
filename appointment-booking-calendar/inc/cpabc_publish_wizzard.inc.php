@@ -112,7 +112,7 @@ if (cpabc_get_post_param('cpabc_do_action_loaded') == 'wizard') {
                        <h3 style="background:#cccccc; padding:5px;">Classic way? Just copy and paste the following shortcode into the page/post:</h3>
                        
                        <div style="border: 1px dotted black; background-color: #FFFACD ;padding:15px; font-weight: bold; margin:10px;">
-                         [CPABC_APPOINTMENT_CALENDAR calendar="<?php echo @intval($_GET["cal"]); ?>"]
+                         [CPABC_APPOINTMENT_CALENDAR calendar="<?php echo (isset ($_GET["cal"]) ? intval($_GET["cal"]) : ''); ?>"]
                        </div>
                        
                        <?php if (defined('ELEMENTOR_PATH')) { ?>
@@ -130,8 +130,8 @@ if (cpabc_get_post_param('cpabc_do_action_loaded') == 'wizard') {
                        <br /> 
                        <h3 style="background:#cccccc; padding:5px;">Using classic WordPress editor or other editors?</h3>
                        
-                         <?php _e('You can also publish the form in a post/page, use the dedicated icon','appointment-booking-calendar'); ?> <?php echo '<img hspace="5" src="'.esc_attr(plugins_url('../images/cpabc_apps.gif', __FILE__)).'" alt="'.esc_attr(__('Insert Appointment Booking Calendar','appointment-booking-calendar')).'" /></a>';     ?>
-                         <?php _e('which has been added to your Upload/Insert Menu, just below the title of your Post/Page or under the "+" icon if using the Gutemberg editor.','appointment-booking-calendar'); ?>
+                         <?php esc_html_e('You can also publish the form in a post/page, use the dedicated icon','appointment-booking-calendar'); ?> <?php echo '<img hspace="5" src="'.esc_attr(plugins_url('../images/cpabc_apps.gif', __FILE__)).'" alt="'.esc_attr(__('Insert Appointment Booking Calendar','appointment-booking-calendar')).'" /></a>';     ?>
+                         <?php esc_html_e('which has been added to your Upload/Insert Menu, just below the title of your Post/Page or under the "+" icon if using the Gutemberg editor.','appointment-booking-calendar'); ?>
                        
                     </td>    
                 </tr> 
@@ -191,10 +191,10 @@ function mvpublish_displayoption(sel) {
 </script>   
 
 <div id="metabox_basic_settings" class="postbox" >
-  <h3 class='hndle' style="padding:5px;"><span><?php _e('Note','appointment-booking-calendar'); ?></span></h3>
+  <h3 class='hndle' style="padding:5px;"><span><?php esc_html_e('Note','appointment-booking-calendar'); ?></span></h3>
   <div class="inside">
-   <?php _e('You can also publish the form in a post/page, use the dedicated icon','appointment-booking-calendar'); ?> <?php echo '<img hspace="5" src="'.esc_attr(plugins_url('../images/cpabc_apps.gif', __FILE__)).'" alt="'.esc_attr(__('Insert Appointment Booking Calendar','appointment-booking-calendar')).'" /></a>';     ?>
-   <?php _e('which has been added to your Upload/Insert Menu, just below the title of your Post/Page or under the "+" icon if using the Gutemberg editor.','appointment-booking-calendar'); ?>
+   <?php esc_html_e('You can also publish the form in a post/page, use the dedicated icon','appointment-booking-calendar'); ?> <?php echo '<img hspace="5" src="'.esc_attr(plugins_url('../images/cpabc_apps.gif', __FILE__)).'" alt="'.esc_attr(__('Insert Appointment Booking Calendar','appointment-booking-calendar')).'" /></a>';     ?>
+   <?php esc_html_e('which has been added to your Upload/Insert Menu, just below the title of your Post/Page or under the "+" icon if using the Gutemberg editor.','appointment-booking-calendar'); ?>
    <br /><br />
   </div>
 </div>

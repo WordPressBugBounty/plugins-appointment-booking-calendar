@@ -10,7 +10,7 @@ $current_user = wp_get_current_user();
 
 global $wpdb;
 $message = "";
-if (isset($_GET['u']) && $_GET['u'] != '')
+if (cpabc_appointment_is_administrator() && isset($_GET['u']) && $_GET['u'] != '')
 {
     if (!wp_verify_nonce( $_REQUEST['_wpnonce'], 'uname_abc' ))    
         $message = "Access verification error. Cannot update settings.";
@@ -20,7 +20,7 @@ if (isset($_GET['u']) && $_GET['u'] != '')
         $message = __("Item updated",'appointment-booking-calendar');        
     }    
 }
-else if (isset($_GET['ac']) && $_GET['ac'] == 'st')
+else if (cpabc_appointment_is_administrator() && isset($_GET['ac']) && $_GET['ac'] == 'st')
 {   
     if (!wp_verify_nonce( $_REQUEST['_wpnonce'], 'uname_abc' ))    
         $message = __("Access verification error. Cannot update settings.",'appointment-booking-calendar');

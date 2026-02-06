@@ -42,7 +42,7 @@ if (!class_exists('CP_AppBookingCalendar_Elementor'))
       function register_widget_category( $elements_manager ) {
           $elements_manager->add_category(
                                           'codepeople-widgets', array(
-                                          'title' => __('CodePeople', 'codepeople-builder'),
+                                          'title' => __('CodePeople', 'appointment-booking-calendar'),
                                           'icon' => 'fas fa-calendar-check',
                                           ));
       }

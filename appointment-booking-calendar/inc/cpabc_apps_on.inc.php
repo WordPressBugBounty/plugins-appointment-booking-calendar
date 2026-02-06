@@ -290,7 +290,7 @@ function cpabc_appointments_filter_list($atts) {
     if (!defined('CP_CALENDAR_ID')) define ('CP_CALENDAR_ID',$myrows[0]->id);
 
     ob_start();
-    echo '<link rel="stylesheet" type="text/css" href="'.plugins_url('../TDE_AppCalendar/'.esc_attr(cpabc_get_option('calendar_theme','modern/')).'all-css.css', __FILE__).'" />';
+    echo '<link rel="stylesheet" type="text/css" href="'.plugins_url('../TDE_AppCalendar/'.esc_attr(cpabc_get_option('calendar_theme','friendly/')).'all-css.css', __FILE__).'" />';
     $fields = explode(",",$fields);
     $last_date = '';
     $mycalendarrows = $wpdb->get_results( "SELECT * FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE ." INNER JOIN  ".CPABC_APPOINTMENTS_TABLE_NAME." on  ".CPABC_APPOINTMENTS_TABLE_NAME.".id=".CPABC_TDEAPP_CALENDAR_DATA_TABLE.".reference WHERE datatime>='".esc_sql($from)."' AND datatime<='".esc_sql($to)."' AND appointment_calendar_id=".intval(CP_CALENDAR_ID)." ORDER BY datatime ASC");
@@ -377,7 +377,7 @@ function cpabc_appointments_get_public_form() {
 
     ?>
 </p> <!-- this p tag fixes a IE bug -->
-<link rel="stylesheet" type="text/css" href="<?php echo esc_attr(plugins_url('../TDE_AppCalendar/'.(is_admin()?'':cpabc_get_option('calendar_theme','modern/')).'all-css.css', __FILE__)); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php echo esc_attr(plugins_url('../TDE_AppCalendar/'.(is_admin()?'':cpabc_get_option('calendar_theme','friendly/')).'all-css.css', __FILE__)); ?>" />
 <script>
 var pathCalendar = "<?php echo esc_js(cpabc_appointment_get_site_url()); ?>";
 var cpabc_global_date_format = '<?php echo esc_js(cpabc_get_option('calendar_dateformat', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_DATEFORMAT)); ?>';
@@ -513,7 +513,8 @@ var cpabc_global_pagedate = '<?php
     if (result.indexOf("captchafailed") != -1)
     {
         $dexQuery("#captchaimg").attr('src', $dexQuery("#captchaimg").attr('src')+String.fromCharCode(38)+Math.floor((Math.random() * 99999) + 1));
-        alert('<?php echo str_replace("'","\'",esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar'))); ?>');
+        cpabc_click_enabled = true;
+        alert('<?php echo str_replace("'","\'",esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar'))); ?>');        
         return false;
     }
     else <?php } ?>
@@ -613,7 +614,7 @@ function cpabc_appointments_html_post_page() {
 
 
 function set_cpabc_apps_insert_button() {
-    print '<a href="javascript:send_to_editor(\'[CPABC_APPOINTMENT_CALENDAR calendar=&quot;1&quot;]\');" title="'.__('Insert Appointment Booking Calendar').'"><img hspace="5" src="'.plugins_url('../images/cpabc_apps.gif', __FILE__).'" alt="'.__('Insert  Appointment Booking Calendar','appointment-booking-calendar').'" /></a>';
+    print '<a href="javascript:send_to_editor(\'[CPABC_APPOINTMENT_CALENDAR calendar=&quot;1&quot;]\');" title="'.__('Insert Appointment Booking Calendar','appointment-booking-calendar').'"><img hspace="5" src="'.plugins_url('../images/cpabc_apps.gif', __FILE__).'" alt="'.__('Insert  Appointment Booking Calendar','appointment-booking-calendar').'" /></a>';
 }
 
 
@@ -624,7 +625,8 @@ function set_cpabc_apps_insert_adminScripts($hook) {
         wp_enqueue_script( 'jquery-ui-core' );
         wp_enqueue_script( 'jquery-ui-datepicker' );
         //wp_enqueue_script( 'tinymce_js', includes_url( 'js/tinymce/' ) . 'wp-tinymce.php', array( 'jquery' ), false, true );
-        if (function_exists('wp_tiny_mce')) wp_tiny_mce(true);
+        if (!isset($_GET["addbk"]) && !isset($_GET["list"]) && !isset($_GET["calschedule"]) && !isset($_GET["item"]) &&  
+            function_exists('wp_tiny_mce')) wp_tiny_mce(true);
         
         if (isset($_GET["calschedule"]) && $_GET["calschedule"] == '1')
         {

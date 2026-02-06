@@ -20,6 +20,71 @@
 
   
 ?>
+<style>
+/* Core Overlay (dims the background) */
+.ui-widget-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+/* Main Dialog Container */
+.ui-dialog {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: .2em;
+    outline: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 101;
+}
+
+/* Dialog Header */
+.ui-dialog-titlebar {
+    padding: .4em 1em;
+    position: relative;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
+    font-weight: bold;
+}
+
+/* Close Button Position */
+.ui-dialog-titlebar-close {
+    position: absolute;
+    right: .3em;
+    top: 50%;
+    width: 20px;
+    margin: -10px 0 0 0;
+    padding: 1px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* Content Area */
+.ui-dialog-content {
+    position: relative;
+    border: 0;
+    padding: .5em 1em;
+    background: none;
+    overflow: auto;
+}
+
+/* Button Pane at bottom */
+.ui-dialog-buttonpane {
+    text-align: left;
+    border-width: 1px 0 0 0;
+    background-image: none;
+    margin-top: .5em;
+    padding: .3em 1em .5em .4em;
+    border-top: 1px solid #eee;
+}
+</style>
 <form class="cpp_form no-prefetch" id="cp_abcform_pform" name="FormEdit" action="<?php echo esc_attr($path); ?>" method="post" onsubmit="return doValidate(this);">
 <input name="_wpnonce" type="hidden" value="<?php echo esc_attr($nonce_un); ?>" />
 <input name="cpabc_appointments_post" type="hidden" value="1" /><input name="cpabc_appointments_utime" type="hidden"  value="" />
@@ -108,11 +173,11 @@
 <?php } ?>
 <div style="clear:both;"></div>
 <?php _e('Your phone number','appointment-booking-calendar'); ?>:<br />
-<input type="text" name="phone" value=""><br />
+<input type="text" name="phone" required="required" value=""><br />
 <?php _e('Your name','appointment-booking-calendar'); ?>:<br />
-<input type="text" name="name" value=""><br />
+<input type="text" name="name" required="required" value=""><br />
 <?php _e('Your email','appointment-booking-calendar'); ?>:<br />
-<input type="email" name="email" value=""><br />
+<input type="email" name="email" required="required" value=""><br />
 <?php _e('Comments/Questions','appointment-booking-calendar'); ?>:<br />
 <textarea name="question" style="width:100%"></textarea><br />
 <?php if (!is_admin() && cpabc_get_option('dexcv_enable_captcha', CPABC_TDEAPP_DEFAULT_dexcv_enable_captcha) != 'false') { ?>
@@ -121,12 +186,15 @@
   <br />
   <?php _e('Security Code:','appointment-booking-calendar'); ?><br />
   <div class="dfield">
-  <input type="text" size="20" name="hdcaptcha" id="hdcaptcha" value="" />
+  <input type="text" size="20" name="hdcaptcha" required="required" id="hdcaptcha" value="" />
   <div class="error message" id="hdcaptcha_error" generated="true" style="display:none;position: absolute; left: 0px; top: 25px;"></div>
   </div>
   <br />
 <?php } ?>
-<input type="submit" name="subbtn" class="cp_subbtn" value="<?php _e($button_label,'appointment-booking-calendar'); ?>">
+<input type="submit" name="subbtn" class="cp_subbtn pbSubmit" value="<?php _e($button_label,'appointment-booking-calendar'); ?>">
+<div id="wrongcaptcha-modal" title="Alert" style="display:none;">
+  <p><?php echo esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar')); ?></p>
+</div>
 </form>
 
 

@@ -360,6 +360,44 @@ function cpabc_appointments_user_access_to($calendar) {
 }
 
 
+function cpabc_verify_paypal_ipn() {
+    // Read POST data
+    $raw_post_data = file_get_contents('php://input');
+    $raw_post_array = explode('&', $raw_post_data);
+    $myPost = array();
+    foreach ($raw_post_array as $keyval) {
+        $keyval = explode('=', $keyval);
+        if (count($keyval) == 2) {
+            $myPost[$keyval[0]] = urldecode($keyval[1]);
+        }
+    }
+
+    // Build validation request back to PayPal
+    $req = 'cmd=_notify-validate';
+    foreach ($myPost as $key => $value) {
+        $value = urlencode($value);
+        $req .= "&$key=$value";
+    }
+
+    // Send validation request to PayPal
+    $paypal_url = 'https://ipnpb.paypal.com/cgi-bin/webscr';
+    $ch = curl_init($paypal_url);
+    curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Connection: Close'));
+
+    $res = curl_exec($ch);
+    curl_close($ch);
+
+    return (trim($res) === "VERIFIED");
+}
+
+
 function cpabc_appointments_check_IPN_verification() {
 
     global $wpdb;
@@ -373,6 +411,12 @@ function cpabc_appointments_check_IPN_verification() {
 
     if (CPABC_TDEAPP_CALENDAR_STEP2_VRFY)
     {
+        
+        if (!cpabc_verify_paypal_ipn()) {
+            error_log('Invalid PayPal IPN verification');
+            die('IPN validation failed');
+        }
+    
 	    if ($payment_status != 'Completed' && $payment_type != 'echeck')
 	        return;
 

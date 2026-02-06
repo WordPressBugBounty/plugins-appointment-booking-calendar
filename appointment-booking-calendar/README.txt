@@ -3,9 +3,9 @@ Contributors: codepeople
 Donate link: https://abc.dwbooster.com/download
 Tags: appointment,booking,calendar,appointment calendar,booking calendar
 Requires at least: 3.0.5
-Tested up to: 6.8
-Stable tag: 1.3.95
-License: GPLv2 or later
+Tested up to: 6.9
+Stable tag: 1.3.99
+License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 Appointment Booking Calendar is an appointment calendar for accepting online bookings from a set of available time-slots in a calendar.
@@ -1203,7 +1203,19 @@ Please note that the pro features aren't advised as part of the free plugin in t
 = 1.3.95 =
 * Availability optimization
 
+= 1.3.96 =
+* Improvements
+
+= 1.3.97 =
+* More complete PayPal IPN
+
+= 1.3.98 =
+* Compatible with WP 6.9
+
+= 1.3.99 =
+* New modern design
+
 == Upgrade Notice ==
 
-= 1.3.95 =
-* Availability optimization
+= 1.3.99 =
+* New modern design

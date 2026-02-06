@@ -3,9 +3,9 @@
 Plugin Name: Appointment Booking Calendar
 Plugin URI: https://abc.dwbooster.com
 Description: This plugin allows you to easily insert appointments forms into your WP website.
-Version: 1.3.95
+Version: 1.3.99
 Author URI: https://abc.dwbooster.com
-License: GPL
+License: GPLv2
 Text Domain: appointment-booking-calendar
 */
 
@@ -99,7 +99,7 @@ define("CPABC_TDEAPP_CONFIG_TIMEWORKINGDATES5","timeWorkingDates5");
 define("CPABC_TDEAPP_CONFIG_TIMEWORKINGDATES6","timeWorkingDates6");
 define("CPABC_TDEAPP_CALDELETED_FIELD","caldeleted");
 
-define('CPABC_TDEAPP_CALENDAR_STEP2_VRFY', false);
+define('CPABC_TDEAPP_CALENDAR_STEP2_VRFY', true);
 
 define("CPABC_TDEAPP_CALENDAR_DATA_TABLE",CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME);
 define("CPABC_TDEAPP_DATA_ID","id");
@@ -119,7 +119,7 @@ define('CPABC_TDEAPP_DEFAULT_dexcv_max_font_size', '35');
 define('CPABC_TDEAPP_DEFAULT_dexcv_noise', '200');
 define('CPABC_TDEAPP_DEFAULT_dexcv_noise_length', '4');
 define('CPABC_TDEAPP_DEFAULT_dexcv_background', 'ffffff');
-define('CPABC_TDEAPP_DEFAULT_dexcv_border', '000000');
+define('CPABC_TDEAPP_DEFAULT_dexcv_border', 'ffffff');
 define('CPABC_TDEAPP_DEFAULT_dexcv_text_enter_valid_captcha', 'Please enter a valid captcha code.');
 
 define('CPABC_APPOINTMENTS_DEFAULT_vs_text_is_required', 'This field is required.');
