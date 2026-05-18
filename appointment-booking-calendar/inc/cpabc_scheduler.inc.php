@@ -192,9 +192,6 @@
   <br />
 <?php } ?>
 <input type="submit" name="subbtn" class="cp_subbtn pbSubmit" value="<?php _e($button_label,'appointment-booking-calendar'); ?>">
-<div id="wrongcaptcha-modal" title="Alert" style="display:none;">
-  <p><?php echo esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar')); ?></p>
-</div>
 </form>
 
 
