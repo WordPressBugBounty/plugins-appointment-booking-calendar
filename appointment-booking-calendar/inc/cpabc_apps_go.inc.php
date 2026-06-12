@@ -781,7 +781,23 @@ function cpabc_appointments_export_csv ()
     if ($_GET["dfrom"] != '') $cond .= " AND (`booked_time_unformatted` >= '".esc_sql(sanitize_text_field($_GET["dfrom"]))."')";
     if ($_GET["dto"] != '') $cond .= " AND (`booked_time_unformatted` <= '".esc_sql(sanitize_text_field($_GET["dto"]))." 23:59:59')";
 
-    if (CP_CALENDAR_ID != 0) $cond .= " AND appointment_calendar_id=".intval(CP_CALENDAR_ID);
+    if (CP_CALENDAR_ID != 0) {
+        $query = "SELECT * FROM ".CPABC_TDEAPP_CONFIG." where ".CPABC_TDEAPP_CONFIG_ID."='".esc_sql(intval(CP_CALENDAR_ID))."'";
+        $rowcal = $wpdb->get_results($query,ARRAY_A);
+        $current_user = wp_get_current_user();
+        if (!cpabc_appointment_is_administrator() && !($rowcal[0]["conwer"] == $current_user->ID)) {
+            echo 'Access not verified';
+            exit;
+        }         
+        $cond .= " AND appointment_calendar_id=".intval(CP_CALENDAR_ID);      
+    } else {
+        if (!cpabc_appointment_is_administrator()) {
+            echo 'Access not verified';
+            exit;
+        }     
+    }
+       
+
 
     $events = $wpdb->get_results( "SELECT * FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." INNER JOIN ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." ON ".CPABC_TDEAPP_CALENDAR_DATA_TABLE.".appointment_calendar_id=".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME.".id LEFT JOIN ".CPABC_APPOINTMENTS_TABLE_NAME." ON ".CPABC_TDEAPP_CALENDAR_DATA_TABLE.".reference=".CPABC_APPOINTMENTS_TABLE_NAME.".id  WHERE 1=1 ".$cond );
 
@@ -946,9 +962,20 @@ function cpabc_appointments_calendar_load2() {
     
     $query = "SELECT * FROM ".CPABC_TDEAPP_CONFIG." where ".CPABC_TDEAPP_CONFIG_ID."='".esc_sql($calid)."'";
     $rowcal = $wpdb->get_results($query,ARRAY_A);
+    
+
+    $current_user = wp_get_current_user();
+    if (!cpabc_appointment_is_administrator() && !($rowcal[0]["conwer"] == $current_user->ID)) {
+        echo 'Access not verified';
+        exit;
+    }
+
+    
     $min_date = strtotime($rowcal[0]["calendar_mindate"]);
     $min_date = date("Y-m-d H:i:s", $min_date);
 	$min_date = strtotime($min_date." -1 day");
+    
+    
 
     
     $query = "SELECT * FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." where ".CPABC_TDEAPP_DATA_IDCALENDAR."='".esc_sql($calid)."' ORDER BY ".CPABC_TDEAPP_DATA_DATETIME." ASC";

@@ -3,7 +3,7 @@
 Plugin Name: Appointment Booking Calendar
 Plugin URI: https://abc.dwbooster.com
 Description: This plugin allows you to easily insert appointments forms into your WP website.
-Version: 1.4.01
+Version: 1.4.02
 Author URI: https://abc.dwbooster.com
 License: GPLv2
 Text Domain: appointment-booking-calendar
@@ -246,4 +246,19 @@ require_once 'inc/cp-feedback.php';
 include_once dirname( __FILE__ ) . '/controllers/elementor/cp-elementor-widget.inc.php';
 
 
-?>
+// prevent non-admin users from using the list shortcode
+add_filter( 'content_save_pre', function ( $content ) {
+
+    if ( current_user_can( 'manage_options' ) ) {
+        return $content;
+    }
+
+    // Remove only NEW instances
+    $content = preg_replace(
+        '/\[CPABC_APPOINTMENT_LIST[^\]]*\]/',
+        '',
+        $content
+    );
+
+    return $content;
+});
