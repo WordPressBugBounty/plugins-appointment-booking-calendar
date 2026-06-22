@@ -254,6 +254,14 @@ function cpabc_appointments_getDateFormat() {
 
 function cpabc_appointments_filter_list($atts) {
     global $wpdb;
+    
+    if ( ! is_user_logged_in() ) {
+        return '<p class="error">'.esc_html(__("You must be logged in to view bookings.",'appointment-booking-calendar')).'</p>';
+    }
+
+    $current_user_id = get_current_user_id();
+    $is_admin        = current_user_can('manage_options'); // Standard check for administrators
+    
     extract( shortcode_atts( array(
 		'calendar' => '',
 		'user' => '',
@@ -261,31 +269,61 @@ function cpabc_appointments_filter_list($atts) {
 		'fields' => 'DATE,TIME,NAME',
 		'from' => "today",
 		'to' => "today +90 days",
-	), $atts ) );
+	), $atts ) );   
 
 	$from = date("Y-m-d 00:00:00", strtotime($from));
 	$to = date("Y-m-d 23:59:59", strtotime($to));
 	$group = strtolower($group);
-
-    if ($calendar != '')
-        define ('CPABC_CALENDAR_FIXED_ID', intval($calendar));
-    else if ($user != '')
-    {
-        $users = $wpdb->get_results( "SELECT user_login,ID FROM ".$wpdb->users." WHERE user_login='".esc_sql($user)."'" );
-        if (isset($users[0]))
-            define ('CPABC_CALENDAR_USER',$users[0]->ID);
+    
+    if ( $is_admin ) {
+        if ($calendar != '')
+            define ('CPABC_CALENDAR_FIXED_ID', intval($calendar));
+        else if ($user != '')
+        {
+            $users = $wpdb->get_results( "SELECT user_login,ID FROM ".$wpdb->users." WHERE user_login='".esc_sql($user)."'" );
+            if (isset($users[0]))
+                define ('CPABC_CALENDAR_USER',$users[0]->ID);
+            else
+                define ('CPABC_CALENDAR_USER',0);
+        }
         else
             define ('CPABC_CALENDAR_USER',0);
-    }
-    else
-        define ('CPABC_CALENDAR_USER',0);
 
-    if (defined('CPABC_CALENDAR_USER') && CPABC_CALENDAR_USER != 0)
-        $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE conwer=".CPABC_CALENDAR_USER." AND caldeleted=0" );
-    else if (defined('CPABC_CALENDAR_FIXED_ID'))
-        $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE id=".CPABC_CALENDAR_FIXED_ID." AND caldeleted=0" );
-    else
-        $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE caldeleted=0" );
+        if (defined('CPABC_CALENDAR_USER') && CPABC_CALENDAR_USER != 0)
+            $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE conwer=".CPABC_CALENDAR_USER." AND caldeleted=0" );
+        else if (defined('CPABC_CALENDAR_FIXED_ID'))
+            $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE id=".CPABC_CALENDAR_FIXED_ID." AND caldeleted=0" );
+        else
+            $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE caldeleted=0" );
+    } else {
+        // NON-ADMIN BRANCH: Strictly enforce 'conwer' = current user ID
+        if ($calendar != '') {
+            $calendar_id = intval($calendar);
+            // Verify that this exact calendar ID belongs to the current user
+            $myrows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT * FROM " . CPABC_APPOINTMENTS_CONFIG_TABLE_NAME . " WHERE id = %d AND conwer = %d AND caldeleted = 0",
+                $calendar_id, $current_user_id
+            ) );
+            if (!defined('CPABC_CALENDAR_FIXED_ID')) define ('CPABC_CALENDAR_FIXED_ID', $calendar_id);
+        } else if ($user != '') {
+            // If filtering by user attribute, non-admins can only look up themselves
+            $users = $wpdb->get_results( $wpdb->prepare("SELECT user_login,ID FROM ".$wpdb->users." WHERE user_login=%s", $user) );
+            if (isset($users[0]) && intval($users[0]->ID) === $current_user_id) {
+                if (!defined('CPABC_CALENDAR_USER')) define ('CPABC_CALENDAR_USER', $current_user_id);
+                $myrows = $wpdb->get_results( $wpdb->prepare("SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE conwer=%d AND caldeleted=0", $current_user_id) );
+            } else {
+                return '<p class="error">'.esc_html(__("Access denied: You cannot view calendars owned by other users.",'appointment-booking-calendar')).'</p>';
+            }
+        } else {
+            // Fallback: Default to only pulling calendars owned by the logged-in user
+            if (!defined('CPABC_CALENDAR_USER')) define ('CPABC_CALENDAR_USER', $current_user_id);
+            $myrows = $wpdb->get_results( $wpdb->prepare("SELECT * FROM ".CPABC_APPOINTMENTS_CONFIG_TABLE_NAME." WHERE conwer=%d AND caldeleted=0", $current_user_id) );
+        }
+    }
+    
+    if ( empty( $myrows ) ) {
+        return '<p class="error">'.esc_html(__("No data found.",'appointment-booking-calendar')).'</p>';
+    }    
 
     if (!defined('CP_CALENDAR_ID')) define ('CP_CALENDAR_ID',$myrows[0]->id);
 
