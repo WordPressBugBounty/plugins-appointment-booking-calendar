@@ -32,6 +32,7 @@ for ($k=1;$k<100;$k++)
        $request_costs_exploded .= ",'".str_replace("'","\'",floatval($request_costs[0])*($k+1))."'";
 
 $nonce_un = wp_create_nonce( 'uname_abc' );
+$nonce_udpate = wp_create_nonce( 'cp_abc_update2' );
 
 ?>
 
@@ -60,6 +61,7 @@ $nonce_un = wp_create_nonce( 'uname_abc' );
    <script>
    var pathCalendar = "<?php echo esc_js(cpabc_appointment_get_site_url(true)); ?>";
    var cpabc_global_start_weekday = '<?php echo esc_js(cpabc_get_option('calendar_weekday', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_WEEKDAY)); ?>';
+   var cp_abc_update_nonce = '<?php echo esc_html($nonce_udpate); ?>';
    </script>      
    <script>initAppCalendar("cal<?php echo intval(CP_CALENDAR_ID); ?>","3","1","<?php echo esc_js(CPABC_TDEAPP_DEFAULT_CALENDAR_LANGUAGE); ?>",{m1:"Please, select your appointment."});</script>
    

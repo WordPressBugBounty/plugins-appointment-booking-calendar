@@ -1094,6 +1094,9 @@ function cpabc_appointments_calendar_update() {
 
 	if ( ! isset( $_GET['cpabc_calendar_update'] ) || $_GET['cpabc_calendar_update'] != '1' )
 		return;
+    
+    if (!wp_verify_nonce( $_REQUEST['rupdate2'], 'cp_abc_update2'  ))
+        return;    
 
     $calid = intval(str_replace  (CPABC_TDEAPP_CAL_PREFIX, "",$_GET["id"]));
     if ( ! current_user_can('edit_pages') && !cpabc_appointments_user_access_to($calid) )
@@ -1119,6 +1122,9 @@ function cpabc_appointments_calendar_update2() {
     $calid = intval(str_replace  (CPABC_TDEAPP_CAL_PREFIX, "",$_GET["id"]));
     if ( ! current_user_can('edit_pages') && !cpabc_appointments_user_access_to($calid) )
         return;
+    
+    if (!wp_verify_nonce( $_REQUEST['rupdate2'], 'cp_abc_update2'  ))
+        return;
 
     header("Cache-Control: no-store, no-cache, must-revalidate");
     header("Pragma: no-cache");
@@ -1137,7 +1143,7 @@ function cpabc_appointments_calendar_update2() {
             $description = "";
             for ($j=4;$j<count($data);$j++)
             {
-                $description .= cpabc_clean_and_sanitize($data[$j]);
+                $description .= wp_kses_post($data[$j]);
                 if ($j!=count($data)-1)
                     $description .= "\n";
             }
@@ -1154,7 +1160,7 @@ function cpabc_appointments_calendar_update2() {
             $description = "";
             for ($j=4;$j<count($data);$j++)
             {
-                $description .= cpabc_clean_and_sanitize($data[$j]);
+                $description .= wp_kses_post($data[$j]);
                 if ($j!=count($data)-1)
                     $description .= "\n";
             }

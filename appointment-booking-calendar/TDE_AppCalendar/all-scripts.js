@@ -1102,7 +1102,7 @@ YAHOO.TDE.AppCalendar.saveData = function(calendarId) {
 	/** if (YAHOO.TDE.AppCalendar.typeCalendar[calendarId]==1)
 		http_request.open('POST','../update.php?id='+calendarId, true);
 	  else */
-		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update=1&id='+calendarId, true);
+		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update=1&id='+calendarId+'&rupdate2='+cp_abc_update_nonce, true);
 	http_request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
    /** parameters += "&id=" + encodeURI( calID ); */	
@@ -1137,7 +1137,7 @@ YAHOO.TDE.AppCalendar.saveDataEdit = function(calendarId,key,k1,n) {
 	/** if (YAHOO.TDE.AppCalendar.typeCalendar[calendarId]==1)
 		http_request.open('POST','../update2.php?act=edit&id='+calendarId, true);
 	  else */
-		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=edit&id='+calendarId, true);
+		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=edit&id='+calendarId+'&rupdate2='+cp_abc_update_nonce, true);
 	http_request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http_request.send(parameters);
 }
@@ -1154,7 +1154,7 @@ YAHOO.TDE.AppCalendar.saveDataAdd = function(calendarId,key,k1,n) {
 	/** if (YAHOO.TDE.AppCalendar.typeCalendar[calendarId]==1)
 		http_request.open('POST','../update2.php?act=add&id='+calendarId, false);
 	  else */
-		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=add&id='+calendarId, false);
+		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=add&id='+calendarId+'&rupdate2='+cp_abc_update_nonce, false);
 	http_request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http_request.send(parameters);
 	YAHOO.TDE.AppCalendar.appoiments[calendarId][key][k1][n].sqlId = http_request.responseText;
@@ -1172,7 +1172,7 @@ YAHOO.TDE.AppCalendar.saveDataDel = function(calendarId,sqlId) {
 	/** if (YAHOO.TDE.AppCalendar.typeCalendar[calendarId]==1)
 		http_request.open('POST','../update2.php?act=del&id='+calendarId, true);
 	  else */
-		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=del&id='+calendarId, true);
+		http_request.open('POST',pathCalendar+'/?cpabc_calendar_update2=1&act=del&id='+calendarId+'&rupdate2='+cp_abc_update_nonce, true);
 	http_request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http_request.send(parameters);
 }

@@ -392,7 +392,7 @@ function cpabc_appointments_get_public_form() {
 
     wp_enqueue_script( 'jquery' );
     if (!isset($_GET["fl_builder"]))  
-        wp_enqueue_script( 'cpabc_calendarscript', plugins_url('../TDE_AppCalendar/all-scripts.min.js?nc=4', __FILE__));
+        wp_enqueue_script( 'cpabc_calendarscript', plugins_url('../TDE_AppCalendar/all-scripts.min.js?nc=5', __FILE__));
 
     $calendar_items = '';
     foreach ($myrows as $item)
@@ -698,7 +698,7 @@ function set_cpabc_apps_insert_adminScripts($hook) {
         if (!isset($_GET["addbk"]))
         {
             wp_enqueue_style('cpabc-allstyle', plugins_url('../TDE_AppCalendar/all-css.css', __FILE__));
-            wp_enqueue_script( 'cpabc_alljs', plugins_url('../TDE_AppCalendar/all-scripts.min.js', __FILE__));
+            wp_enqueue_script( 'cpabc_alljs', plugins_url('../TDE_AppCalendar/all-scripts.min.js?nc=5', __FILE__));
             wp_enqueue_script( 'cpabc_tabview', plugins_url('../TDE_AppCalendar/tabview.js', __FILE__), array('cpabc_alljs'));
             wp_enqueue_script( 'cpabc_simpleeditor', plugins_url('../TDE_AppCalendar/simpleeditor-beta-min.js', __FILE__), array('cpabc_alljs'));
         }
