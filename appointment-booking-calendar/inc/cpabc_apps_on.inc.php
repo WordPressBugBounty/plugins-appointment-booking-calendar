@@ -161,6 +161,17 @@ function _cpabc_appointments_install() {
 }
 
 
+function cpabc_appointments_get_ical_verify($calid) {
+    $rcode = get_option('ABC_RCODE','');
+    if ($rcode == '')
+    {
+        $rcode = wp_generate_uuid4();
+        update_option( 'ABC_RCODE', $rcode);
+    }
+    return substr(md5($calid.$rcode),0,10);
+}
+
+
 function _cpabc_appointments_get_default_paypal_email() 
 {
     return get_the_author_meta('user_email', get_current_user_id());

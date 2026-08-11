@@ -4,7 +4,7 @@ Donate link: https://abc.dwbooster.com/download
 Tags: appointment,booking,calendar,appointment calendar,booking calendar
 Requires at least: 3.0.5
 Tested up to: 7.0
-Stable tag: 1.4.04
+Stable tag: 1.4.05
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -1227,7 +1227,10 @@ Please note that the pro features aren't advised as part of the free plugin in t
 = 1.4.04 =
 * Additional sanitization
 
+= 1.4.05 =
+* iCal verification improvement
+
 == Upgrade Notice ==
 
-= 1.4.04 =
-* Additional sanitization
+= 1.4.05 =
+* iCal verification improvement

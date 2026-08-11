@@ -32,7 +32,7 @@ function cpabc_appointments_main_initialization()
     if(isset($_GET) && array_key_exists('cpabc_app',$_GET)) {
         if ( $_GET["cpabc_app"] == 'calfeed' )
         {
-            if ($_GET["id"] != '' && substr(md5($_GET["id"].get_option('ABC_RCODE',$_SERVER["DOCUMENT_ROOT"])),0,10) == $_GET["verify"])
+            if ($_GET["id"] != '' && cpabc_appointments_get_ical_verify($_GET["id"]) == $_GET["verify"])
                 cpabc_export_iCal();
             else
             {

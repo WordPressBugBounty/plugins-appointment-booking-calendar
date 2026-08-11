@@ -158,7 +158,7 @@ if ($message) echo "<div id='setting-error-settings_updated' class='updated sett
         </td>
     <?php }  ?>
        
-    <td nowrap><a href="<?php echo esc_attr(get_site_url(false)); ?>?cpabc_app=calfeed&id=<?php echo esc_attr($item->id); ?>&verify=<?php echo esc_attr(substr(md5($item->id.get_option('ABC_RCODE',$_SERVER["DOCUMENT_ROOT"])),0,10)); ?>"><?php esc_html_e('iCal Feed','appointment-booking-calendar') ?></a></td>
+    <td nowrap><a href="<?php echo esc_attr(get_site_url(false)); ?>?cpabc_app=calfeed&id=<?php echo esc_attr($item->id); ?>&verify=<?php echo esc_attr(cpabc_appointments_get_ical_verify($item->id)); ?>"><?php esc_html_e('iCal Feed','appointment-booking-calendar') ?></a></td>
     <td style="padding-left:15px;"> 
                              <?php if (cpabc_appointment_is_administrator()) { ?> 
                                <input style="margin-bottom:3px" class="button"  type="button" name="calupdate_<?php echo esc_attr($item->id); ?>" value="<?php esc_html_e('Update','appointment-booking-calendar') ?>" onclick="cp_updateItem(<?php echo esc_attr($item->id); ?>);" /> 
