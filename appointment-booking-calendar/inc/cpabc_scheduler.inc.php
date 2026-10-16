@@ -172,26 +172,26 @@
   </fieldset> 
 <?php } ?>
 <div style="clear:both;"></div>
-<?php _e('Your phone number','appointment-booking-calendar'); ?>:<br />
+<?php esc_html_e('Your phone number','appointment-booking-calendar'); ?>:<br />
 <input type="text" name="phone" required="required" value=""><br />
-<?php _e('Your name','appointment-booking-calendar'); ?>:<br />
+<?php esc_html_e('Your name','appointment-booking-calendar'); ?>:<br />
 <input type="text" name="name" required="required" value=""><br />
-<?php _e('Your email','appointment-booking-calendar'); ?>:<br />
+<?php esc_html_e('Your email','appointment-booking-calendar'); ?>:<br />
 <input type="email" name="email" required="required" value=""><br />
-<?php _e('Comments/Questions','appointment-booking-calendar'); ?>:<br />
+<?php esc_html_e('Comments/Questions','appointment-booking-calendar'); ?>:<br />
 <textarea name="question" style="width:100%"></textarea><br />
 <?php if (!is_admin() && cpabc_get_option('dexcv_enable_captcha', CPABC_TDEAPP_DEFAULT_dexcv_enable_captcha) != 'false') { ?>
-  <?php _e('Please enter the security code:','appointment-booking-calendar'); ?><br />
+  <?php esc_html_e('Please enter the security code:','appointment-booking-calendar'); ?><br />
   <img src="<?php echo esc_attr(cpabc_appointment_get_site_url().'/?cpabc_app=captcha'.cpabc_get_captcha_params()); ?>"  id="captchaimg" alt="security code" border="0" class="skip-lazy"  />
   <br />
-  <?php _e('Security Code:','appointment-booking-calendar'); ?><br />
+  <?php esc_html_e('Security Code:','appointment-booking-calendar'); ?><br />
   <div class="dfield">
   <input type="text" size="20" name="hdcaptcha" required="required" id="hdcaptcha" value="" />
   <div class="error message" id="hdcaptcha_error" generated="true" style="display:none;position: absolute; left: 0px; top: 25px;"></div>
   </div>
   <br />
 <?php } ?>
-<input type="submit" name="subbtn" class="cp_subbtn pbSubmit" value="<?php _e($button_label,'appointment-booking-calendar'); ?>">
+<input type="submit" name="subbtn" class="cp_subbtn pbSubmit" value="<?php echo esc_attr(__($button_label,'appointment-booking-calendar')); ?>">
 </form>
 
 
