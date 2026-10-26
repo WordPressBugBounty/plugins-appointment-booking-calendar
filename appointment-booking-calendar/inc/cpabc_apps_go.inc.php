@@ -28,6 +28,8 @@ function cpabc_appointments_main_initialization()
         cpabc_appointments_add_field_verify($wpdb->prefix.CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME_NO_PREFIX, 'cancelled_reason', "TEXT");
         update_option('ABC_ONE_TIME_4UPDATE',true);
     }	
+    
+    cpabc_appointments_ensure_ipn_security_schema();
 
     if(isset($_GET) && array_key_exists('cpabc_app',$_GET)) {
         if ( $_GET["cpabc_app"] == 'calfeed' )
@@ -206,10 +208,24 @@ function cpabc_appointments_main_initialization()
     //-------------------------------------------------
     $discount_note = "";
     $coupon = false;
+    
+    try {
+        $ipn_token = bin2hex(random_bytes(16));
+    } catch (Exception $e) {
+        $ipn_token = md5(wp_generate_uuid4() . uniqid('', true) . wp_rand());
+    }
+
+    $expected_merchant = strtolower(trim(sanitize_email(cpabc_get_option('paypal_email', _cpabc_appointments_get_default_paypal_email()))));
+    $expected_currency = cpabc_appointments_clean_currency(cpabc_get_option('currency', CPABC_APPOINTMENTS_DEFAULT_CURRENCY));
+    $expected_amount   = number_format((float)$price, 2, '.', '');    
 
     $params = array();
     $params["UTIMEZONE"] = sanitize_text_field(@$_POST["cpabc_appointments_utime"]);
     $params["PRICE"] = number_format ($price, 2);
+    $params["EXPECTED_AMOUNT"] = $expected_amount;
+    $params["EXPECTED_CURRENCY"] = $expected_currency;
+    $params["EXPECTED_MERCHANT"] = $expected_merchant;
+    $params["IPN_TOKEN"] = $ipn_token;
     $params["COUPONCODE"] = ($coupon?"\nCoupon code:".$coupon->code.$discount_note."\n":"");
     $params["QUANTITY"] = (!empty($_POST["abc_capacity"]) ? sanitize_text_field($_POST["abc_capacity"]) : '');
 
@@ -258,7 +274,8 @@ function cpabc_appointments_main_initialization()
                                                                         'phone' => "".sanitize_text_field(@$_POST["phone"]),
                                                                         'question' => $buffer_A,
                                                                         'quantity' => (isset($_POST["abc_capacity"])?sanitize_text_field($_POST["abc_capacity"]):1),
-                                                                        'buffered_date' => serialize($params)
+                                                                        'buffered_date' => serialize($params),
+                                                                        'ipn_token' => $ipn_token
                                                                          ) );
         if (!$rows_affected)
         {
@@ -307,8 +324,8 @@ function cpabc_appointments_main_initialization()
 <input type="hidden" name="cmd" value="_xclick" />
 <input type="hidden" name="business" value="<?php echo esc_attr(sanitize_email(cpabc_get_option('paypal_email', _cpabc_appointments_get_default_paypal_email() ))); ?>" />
 <input type="hidden" name="item_name" value="<?php echo esc_attr(cpabc_get_option('paypal_product_name', CPABC_APPOINTMENTS_DEFAULT_PRODUCT_NAME)); ?>" />
-<input type="hidden" name="custom" value="<?php echo esc_attr($item_number); ?>" />
-<input type="hidden" name="amount" value="<?php echo floatval($price); ?>" />
+<input type="hidden" name="custom" value="<?php echo esc_attr($ipn_token); ?>" />
+<input type="hidden" name="amount" value="<?php echo esc_attr($expected_amount); ?>" />
 <input type="hidden" name="page_style" value="Primary" />
 <input type="hidden" name="no_shipping" value="<?php if (cpabc_get_option('request_address','0') != '1') echo '1'; else echo '2'; ?>" />
 <input type="hidden" name="return" value="<?php echo esc_attr(trim(cpabc_get_option('url_ok', CPABC_APPOINTMENTS_DEFAULT_OK_URL))); ?>">
@@ -316,7 +333,7 @@ function cpabc_appointments_main_initialization()
 <input type="hidden" name="currency_code" value="<?php echo esc_attr(cpabc_appointments_clean_currency(cpabc_get_option('currency', CPABC_APPOINTMENTS_DEFAULT_CURRENCY))); ?>" />
 <input type="hidden" name="lc" value="<?php echo esc_attr(cpabc_get_option('paypal_language', CPABC_APPOINTMENTS_DEFAULT_PAYPAL_LANGUAGE)); ?>" />
 <input type="hidden" name="bn" value="NetFactorSL_SI_Custom" />
-<input type="hidden" name="notify_url" value="<?php echo esc_attr(cpabc_appointment_get_FULL_site_url()); ?>/?cpabc_ipncheck=<?php echo esc_attr($item_number); ?>" />
+<input type="hidden" name="notify_url" value="<?php echo esc_attr(cpabc_appointment_get_FULL_site_url()); ?>/?cpabc_ipncheck=1" />
 </form>
 <script type="text/javascript">
 document.ppform3.submit();
@@ -360,91 +377,296 @@ function cpabc_appointments_user_access_to($calendar) {
 }
 
 
-function cpabc_verify_paypal_ipn() {
-    // Read POST data
-    $raw_post_data = file_get_contents('php://input');
-    $raw_post_array = explode('&', $raw_post_data);
+function cpabc_appointments_ensure_ipn_security_schema() {
+    global $wpdb;
+    if ( false == get_option( 'ABC_ONE_TIME_IPN_SEC_1407', false ) ) {
+        cpabc_appointments_add_field_verify( CPABC_APPOINTMENTS_TABLE_NAME, 'ipn_token', "VARCHAR(64) DEFAULT '' NOT NULL" );
+        cpabc_appointments_add_field_verify( CPABC_APPOINTMENTS_TABLE_NAME, 'txnid', "VARCHAR(128) DEFAULT '' NOT NULL" );
+
+        $charset_collate = $wpdb->get_charset_collate();
+        $ipn_table = $wpdb->prefix . 'cpabc_paypal_ipn_log';
+        $sql = "CREATE TABLE IF NOT EXISTS `{$ipn_table}` (
+            `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            `txn_id` varchar(128) NOT NULL,
+            `ipn_token` varchar(64) NOT NULL,
+            `booking_ids` varchar(255) NOT NULL,
+            `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_txn_id` (`txn_id`),
+            UNIQUE KEY `uniq_ipn_token` (`ipn_token`)
+        ) {$charset_collate};";
+        $wpdb->query( $sql );
+
+        update_option( 'ABC_ONE_TIME_IPN_SEC_1407', true );
+    }
+}
+
+function cpabc_appointments_amount_to_cents( $amount ) {
+    if ( ! is_scalar( $amount ) ) {
+        return false;
+    }
+    $amount = trim( str_replace( ',', '', (string) $amount ) );
+    if ( ! preg_match( '/^\d+(\.\d{1,2})?$/', $amount ) ) {
+        return false;
+    }
+    $parts = explode( '.', $amount );
+    $whole = intval( $parts[0] );
+    $frac  = isset( $parts[1] ) ? intval( str_pad( $parts[1], 2, '0', STR_PAD_RIGHT ) ) : 0;
+    return ( $whole * 100 ) + $frac;
+}
+
+function cpabc_verify_paypal_ipn( $paypal_mode = 'production' ) {
+    $raw_post_data = file_get_contents( 'php://input' );
+    if ( empty( $raw_post_data ) ) {
+        return false;
+    }
+    $raw_post_array = explode( '&', $raw_post_data );
     $myPost = array();
-    foreach ($raw_post_array as $keyval) {
-        $keyval = explode('=', $keyval);
-        if (count($keyval) == 2) {
-            $myPost[$keyval[0]] = urldecode($keyval[1]);
+    foreach ( $raw_post_array as $keyval ) {
+        if ( $keyval === '' ) {
+            continue;
         }
+        $keyval = explode( '=', $keyval, 2 );
+        if ( count( $keyval ) !== 2 ) {
+            return false;
+        }
+        $key = urldecode( $keyval[0] );
+        // Rechazar parámetros duplicados (HTTP Parameter Pollution)
+        if ( array_key_exists( $key, $myPost ) ) {
+            return false;
+        }
+        $myPost[ $key ] = urldecode( $keyval[1] );
     }
 
-    // Build validation request back to PayPal
     $req = 'cmd=_notify-validate';
-    foreach ($myPost as $key => $value) {
-        $value = urlencode($value);
+    foreach ( $myPost as $key => $value ) {
+        $value = urlencode( $value );
         $req .= "&$key=$value";
     }
 
-    // Send validation request to PayPal
-    $paypal_url = 'https://ipnpb.paypal.com/cgi-bin/webscr';
-    $ch = curl_init($paypal_url);
-    curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-    curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Connection: Close'));
+    $paypal_url = ( $paypal_mode === 'sandbox' )
+        ? 'https://ipnpb.sandbox.paypal.com/cgi-bin/webscr'
+        : 'https://ipnpb.paypal.com/cgi-bin/webscr';
 
-    $res = curl_exec($ch);
-    curl_close($ch);
+    $ch = curl_init( $paypal_url );
+    curl_setopt( $ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1 );
+    curl_setopt( $ch, CURLOPT_POST, 1 );
+    curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
+    curl_setopt( $ch, CURLOPT_POSTFIELDS, $req );
+    curl_setopt( $ch, CURLOPT_SSL_VERIFYPEER, 1 );
+    curl_setopt( $ch, CURLOPT_SSL_VERIFYHOST, 2 );
+    curl_setopt( $ch, CURLOPT_FORBID_REUSE, 1 );
+    curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Connection: Close' ) );
 
-    return (trim($res) === "VERIFIED");
+    $res = curl_exec( $ch );
+    curl_close( $ch );
+
+    return ( trim( (string) $res ) === 'VERIFIED' );
 }
 
-
 function cpabc_appointments_check_IPN_verification() {
-
     global $wpdb;
 
-    $itemparam = sanitize_text_field($_GET["cpabc_ipncheck"]);
-    
-    $payment_status = sanitize_text_field($_POST['payment_status']);   
-    $payer_email = sanitize_email($_POST['payer_email']);
-    $payment_type = sanitize_text_field($_POST['payment_type']);
-    $txnid = sanitize_text_field($_POST['txn_id']);
-
-    if (CPABC_TDEAPP_CALENDAR_STEP2_VRFY)
-    {
-        
-        if (!cpabc_verify_paypal_ipn()) {
-            error_log('Invalid PayPal IPN verification');
-            die('IPN validation failed');
-        }
-    
-	    if ($payment_status != 'Completed' && $payment_type != 'echeck')
-	        return;
-
-	    if ($payment_type == 'echeck' && $payment_status == 'Completed')
-    	    return;
+    if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) {
+        status_header( 405 );
+        die( 'Method not allowed' );
     }
+
+    cpabc_appointments_ensure_ipn_security_schema();
+
+    // 1. Resolver la reserva exclusivamente mediante el token en $_POST['custom']
+    $custom_token = isset( $_POST['custom'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['custom'] ) ) ) : '';
+    if ( ! preg_match( '/^[a-f0-9]{32}$/', $custom_token ) ) {
+        // Verificar primero con PayPal para mantener el comportamiento ante controles INVALID
+        if ( CPABC_TDEAPP_CALENDAR_STEP2_VRFY && ! cpabc_verify_paypal_ipn() ) {
+            error_log( 'Invalid PayPal IPN verification' );
+            die( 'IPN validation failed' );
+        }
+        status_header( 400 );
+        die( 'Invalid custom order token' );
+    }
+
+    $pending_rows = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM " . CPABC_APPOINTMENTS_TABLE_NAME . " WHERE ipn_token = %s ORDER BY id ASC",
+            $custom_token
+        )
+    );
+
+    if ( empty( $pending_rows ) ) {
+        if ( CPABC_TDEAPP_CALENDAR_STEP2_VRFY && ! cpabc_verify_paypal_ipn() ) {
+            error_log( 'Invalid PayPal IPN verification' );
+            die( 'IPN validation failed' );
+        }
+        status_header( 400 );
+        die( 'Pending booking not found' );
+    }
+
+    $calendar_id = intval( $pending_rows[0]->calendar );
+    if ( ! defined( 'CP_CALENDAR_ID' ) ) {
+        define( 'CP_CALENDAR_ID', $calendar_id );
+    }
+
+    $paypal_mode = cpabc_get_option( 'paypal_mode', 'production' );
+
+    if ( CPABC_TDEAPP_CALENDAR_STEP2_VRFY ) {
+        if ( ! cpabc_verify_paypal_ipn( $paypal_mode ) ) {
+            error_log( 'Invalid PayPal IPN verification' );
+            die( 'IPN validation failed' );
+        }
+    }
+
+    // 2. Exigir payment_status === 'Completed' para todos los tipos de pago (incluyendo echeck)
+    $payment_status = isset( $_POST['payment_status'] ) ? sanitize_text_field( wp_unslash( $_POST['payment_status'] ) ) : '';
+    if ( $payment_status !== 'Completed' ) {
+        return;
+    }
+
+    $txnid = isset( $_POST['txn_id'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['txn_id'] ) ) ) : '';
+    if ( $txnid === '' ) {
+        status_header( 400 );
+        die( 'Missing transaction ID' );
+    }
+
+    // 3. Validar cada fila del lote pendiente
+    $booking_ids = array();
+    foreach ( $pending_rows as $row ) {
+        if ( intval( $row->calendar ) !== $calendar_id ) {
+            status_header( 400 );
+            die( 'Calendar mismatch in booking batch' );
+        }
+        if ( ! empty( $row->is_cancelled ) && $row->is_cancelled !== '0' ) {
+            status_header( 400 );
+            die( 'Booking is cancelled' );
+        }
+        $booking_ids[] = intval( $row->id );
+    }
+
+    $params = @unserialize( $pending_rows[0]->buffered_date, array( 'allowed_classes' => false ) );
+    if ( ! is_array( $params ) || empty( $params['IPN_TOKEN'] ) || ! hash_equals( (string) $params['IPN_TOKEN'], $custom_token ) ) {
+        status_header( 400 );
+        die( 'Order token validation failed' );
+    }
+
+    // 4. Validar destinatario (receiver_email / business)
+    $configured_merchant = strtolower( trim( sanitize_email( cpabc_get_option( 'paypal_email', _cpabc_appointments_get_default_paypal_email() ) ) ) );
+    if ( $configured_merchant === '' && ! empty( $params['EXPECTED_MERCHANT'] ) ) {
+        $configured_merchant = strtolower( trim( (string) $params['EXPECTED_MERCHANT'] ) );
+    }
+
+    $receiver_email = isset( $_POST['receiver_email'] ) ? strtolower( trim( sanitize_text_field( wp_unslash( $_POST['receiver_email'] ) ) ) ) : '';
+    $business_email = isset( $_POST['business'] ) ? strtolower( trim( sanitize_text_field( wp_unslash( $_POST['business'] ) ) ) ) : '';
     
-    $itemnumber = explode(";",$itemparam);
-    $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." WHERE reference='".intval($itemnumber[0])."'" );
-    if (count($myrows))
-    {
+    if ( $configured_merchant === '' || ( $receiver_email !== $configured_merchant && $business_email !== $configured_merchant ) ) {
+        status_header( 400 );
+        die( 'Merchant email mismatch' );
+    }
+    if ( $receiver_email !== '' && $receiver_email !== $configured_merchant ) {
+        status_header( 400 );
+        die( 'Receiver email mismatch' );
+    }
+
+    // 5. Validar moneda (mc_currency) e importe (mc_gross) con precisión fija en céntimos
+    $expected_currency = cpabc_appointments_clean_currency( cpabc_get_option( 'currency', CPABC_APPOINTMENTS_DEFAULT_CURRENCY ) );
+    $mc_currency       = isset( $_POST['mc_currency'] ) ? cpabc_appointments_clean_currency( sanitize_text_field( wp_unslash( $_POST['mc_currency'] ) ) ) : '';
+
+    if ( $expected_currency === '' || $mc_currency !== $expected_currency ) {
+        status_header( 400 );
+        die( 'Currency mismatch' );
+    }
+
+    $expected_amount_str = isset( $params['EXPECTED_AMOUNT'] ) ? $params['EXPECTED_AMOUNT'] : ( isset( $params['PRICE'] ) ? $params['PRICE'] : '' );
+    $expected_cents      = cpabc_appointments_amount_to_cents( $expected_amount_str );
+    $mc_gross_cents      = isset( $_POST['mc_gross'] ) ? cpabc_appointments_amount_to_cents( wp_unslash( $_POST['mc_gross'] ) ) : false;
+
+    if ( $expected_cents === false || $mc_gross_cents === false || $mc_gross_cents !== $expected_cents ) {
+        status_header( 400 );
+        die( 'Payment amount mismatch' );
+    }
+
+    // 6. Bloqueo atómico para evitar condiciones de carrera y reutilización de txn_id
+    $lock_acquired = $wpdb->get_var( "SELECT GET_LOCK('cpabc_paypal_ipn_lock', 10)" );
+    if ( ! $lock_acquired ) {
+        status_header( 503 );
+        die( 'Could not acquire payment lock' );
+    }
+
+    $ipn_table        = $wpdb->prefix . 'cpabc_paypal_ipn_log';
+    $itemparam_string = implode( ';', $booking_ids );
+
+    // Comprobar si alguna de las referencias del lote ya fue procesada
+    $placeholders = implode( ',', array_fill( 0, count( $booking_ids ), '%s' ) );
+    $existing_refs = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM " . CPABC_TDEAPP_CALENDAR_DATA_TABLE . " WHERE reference IN ($placeholders)",
+            array_map( 'strval', $booking_ids )
+        )
+    );
+
+    if ( intval( $existing_refs ) > 0 ) {
+        $wpdb->get_var( "SELECT RELEASE_LOCK('cpabc_paypal_ipn_lock')" );
         echo 'OK - Already processed';
         exit;
     }
 
-    $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($itemnumber[0]) );
-    $params = unserialize($myrows[0]->buffered_date);
-    $params["txnid"] = $txnid;
-    $wpdb->query( "UPDATE ".CPABC_APPOINTMENTS_TABLE_NAME." SET buffered_date='".esc_sql(serialize($params))."' WHERE id=".intval($itemnumber[0]) );  
-      
-    
-    cpabc_process_ready_to_go_appointment( $itemparam, $payer_email);
+    // Comprobar si el txn_id ya fue registrado
+    $existing_ipn = $wpdb->get_row(
+        $wpdb->prepare( "SELECT * FROM `{$ipn_table}` WHERE txn_id = %s OR ipn_token = %s LIMIT 1", $txnid, $custom_token )
+    );
+
+    if ( $existing_ipn ) {
+        $wpdb->get_var( "SELECT RELEASE_LOCK('cpabc_paypal_ipn_lock')" );
+        if ( $existing_ipn->txn_id === $txnid && $existing_ipn->ipn_token === $custom_token ) {
+            echo 'OK - Already processed';
+            exit;
+        }
+        status_header( 400 );
+        die( 'Duplicate transaction ID or token already consumed' );
+    }
+
+    $inserted = $wpdb->query(
+        $wpdb->prepare(
+            "INSERT IGNORE INTO `{$ipn_table}` (txn_id, ipn_token, booking_ids) VALUES (%s, %s, %s)",
+            $txnid,
+            $custom_token,
+            $itemparam_string
+        )
+    );
+
+    if ( ! $inserted ) {
+        $wpdb->get_var( "SELECT RELEASE_LOCK('cpabc_paypal_ipn_lock')" );
+        status_header( 400 );
+        die( 'Transaction already processed' );
+    }
+
+    // Actualizar todas las filas del lote con el txnid
+    foreach ( $pending_rows as $row ) {
+        $row_params = @unserialize( $row->buffered_date, array( 'allowed_classes' => false ) );
+        if ( ! is_array( $row_params ) ) {
+            $row_params = array();
+        }
+        $row_params['txnid'] = $txnid;
+        $wpdb->update(
+            CPABC_APPOINTMENTS_TABLE_NAME,
+            array(
+                'buffered_date' => serialize( $row_params ),
+                'txnid'         => $txnid,
+            ),
+            array( 'id' => intval( $row->id ) ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+    }
+
+    // 7. Confirmar la reserva sin pasar payer_email para evitar fuga de PII
+    cpabc_process_ready_to_go_appointment( $itemparam_string, '' );
+
+    $wpdb->get_var( "SELECT RELEASE_LOCK('cpabc_paypal_ipn_lock')" );
 
     echo 'OK';
-
     exit();
-
 }
+
 
 function cpabc_process_cancel_go_appointment()
 {
@@ -472,7 +694,13 @@ function cpabc_process_ready_to_go_appointment($itemnumber, $payer_email = "", $
 
    $itemnumber = explode(";",$itemnumber);
    $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($itemnumber[0]) );
+   if ( empty( $myrows ) ) {
+       return;
+   }
    $mycalendarrows = $wpdb->get_results( 'SELECT * FROM '.CPABC_APPOINTMENTS_CONFIG_TABLE_NAME .' WHERE `'.CPABC_TDEAPP_CONFIG_ID.'`='.intval($myrows[0]->calendar));
+   if ( empty( $mycalendarrows ) ) {
+       return;
+   }
    $reminder_timeline = date( "Y-m-d H:i:s", strtotime (date("Y-m-d H:i:s")." +".$mycalendarrows[0]->reminder_hours." hours") );
    if (!defined('CP_CALENDAR_ID'))
         define ('CP_CALENDAR_ID',$myrows[0]->calendar);
@@ -503,6 +731,9 @@ function cpabc_process_ready_to_go_appointment($itemnumber, $payer_email = "", $
    for ($n=0;$n<count($itemnumber);$n++)
    {
        $myrows = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($itemnumber[$n]) );
+       if ( empty( $myrows ) ) {
+           continue;
+       }
        $buffered_dates[] = $myrows[0]->booked_time;
        $information = $mycalendarrows[0]->uname."\n".
                       $myrows[0]->booked_time."\n".
@@ -565,11 +796,11 @@ function cpabc_process_ready_to_go_appointment($itemnumber, $payer_email = "", $
                         $content_type.
                         "X-Mailer: PHP/" . phpversion());
                
-               if ($payer_email && strtolower($payer_email) != strtolower($myrows[0]->email))
-                   wp_mail($payer_email , $email_subject1, $email_content1,
-                            "From: ".$SYSTEM_EMAIL."\r\n".
-                            $content_type.
-                            "X-Mailer: PHP/" . phpversion());
+               //if ($payer_email && strtolower($payer_email) != strtolower($myrows[0]->email))
+               //    wp_mail($payer_email , $email_subject1, $email_content1,
+               //             "From: ".$SYSTEM_EMAIL."\r\n".
+               //             $content_type.
+               //             "X-Mailer: PHP/" . phpversion());
                
                // SEND EMAIL TO ADMIN
                if ('html' == cpabc_get_option('nadmin_emailformat', CPABC_APPOINTMENTS_DEFAULT_email_format)) $content_type = "Content-Type: text/html; charset=utf-8\n"; else $content_type = "Content-Type: text/plain; charset=utf-8\n";

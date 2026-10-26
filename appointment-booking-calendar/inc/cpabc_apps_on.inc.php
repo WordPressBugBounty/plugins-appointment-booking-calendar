@@ -52,6 +52,8 @@ function _cpabc_appointments_install() {
 			 is_verified  VARCHAR(25) DEFAULT '' NOT NULL,
 			 verified_required  VARCHAR(25) DEFAULT '' NOT NULL,
 			 cancelled_reason text,
+             ipn_token VARCHAR(64) DEFAULT '' NOT NULL,
+			 txnid VARCHAR(128) DEFAULT '' NOT NULL,
              UNIQUE KEY id (id)
              ) ".$charset_collate.";";
         $wpdb->query($sql);
@@ -157,6 +159,9 @@ function _cpabc_appointments_install() {
     }
     
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    if ( function_exists( 'cpabc_appointments_ensure_ipn_security_schema' ) ) {
+        cpabc_appointments_ensure_ipn_security_schema();
+    }    
 
 }
 
