@@ -1464,61 +1464,76 @@ function cpabc_data_management_loaded()
 {
     global $wpdb, $cpabc_postURL;
 
-    $action = sanitize_text_field(cpabc_get_post_param('cpabc_do_action_loaded'));
-	if (!$action) return; // go out if the call isn't for this one
+    $action = sanitize_text_field( cpabc_get_post_param( 'cpabc_do_action_loaded' ) );
+    if ( ! $action ) {
+        return; // go out if the call isn't for this one
+    }
 
-    if ($_POST['cpabc_publish_id']) $item = intval($_POST['cpabc_publish_id']);
+    $item = ! empty( $_POST['cpabc_publish_id'] ) ? intval( $_POST['cpabc_publish_id'] ) : 1;
 
-    if ($action == "wizard" && wp_verify_nonce( $_POST['nonce'], 'abc_update_actions_pwizard' ) && current_user_can('manage_options'))
+    if ( $action === 'wizard' && isset( $_POST['nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'abc_update_actions_pwizard' ) && current_user_can( 'manage_options' ) )
     {
-        $shortcode = '[CPABC_APPOINTMENT_CALENDAR calendar="'.$item .'"]';
-        $cpabc_postURL = cpabc_publish_on(    sanitize_text_field(cpabc_get_post_param("whereto")), 
-                                              sanitize_text_field(cpabc_get_post_param("publishpage")), 
-                                              sanitize_text_field(cpabc_get_post_param("publishpost")), 
-                                              @$shortcode, 
-                                              sanitize_text_field(cpabc_get_post_param("posttitle")));            
+        $shortcode     = '[CPABC_APPOINTMENT_CALENDAR calendar="' . $item . '"]';
+        $cpabc_postURL = cpabc_publish_on(
+            sanitize_text_field( cpabc_get_post_param( 'whereto' ) ),
+            sanitize_text_field( cpabc_get_post_param( 'publishpage' ) ),
+            sanitize_text_field( cpabc_get_post_param( 'publishpost' ) ),
+            $shortcode,
+            sanitize_text_field( cpabc_get_post_param( 'posttitle' ) ),
+            sanitize_text_field( cpabc_get_post_param( 'publishstatus' ) )
+        );
         return;
     }
 
-    // ...
     echo 'Some unexpected error happened. If you see this error contact the support service at https://abc.dwbooster.com/contact-us';
-
     exit();
 }    
 
 
-function cpabc_publish_on($whereto, $publishpage = '', $publishpost = '', $content = '', $posttitle = 'Booking Form')
+function cpabc_publish_on( $whereto, $publishpage = '', $publishpost = '', $content = '', $posttitle = 'Booking Form', $poststatus = 'draft' )
 {
     global $wpdb;
     $id = '';
-    if ($whereto == '0' || $whereto =='1') // new page
+
+    $poststatus = ( $poststatus === 'publish' ) ? 'publish' : 'draft';
+    if ( trim( $posttitle ) === '' ) {
+        $posttitle = 'Booking Form';
+    }
+
+    if ( $whereto === '0' || $whereto === '1' ) // new page or new post
     {
+        $post_content = ( $poststatus === 'draft' )
+            ? 'This is a <b>preview</b> page, remember to publish it if needed. You can edit the full form settings into the admin settings page.<br /><br /> ' . $content
+            : $content;
+
         $my_post = array(
-          'post_title'    => $posttitle,
-          'post_type' => ($whereto == '0'?'page':'post'),
-          'post_content'  => 'This is a <b>preview</b> page, remember to publish it if needed. You can edit the full form settings into the admin settings page.<br /><br /> '.$content,
-          'post_status'   => 'draft'
+            'post_title'   => $posttitle,
+            'post_type'    => ( $whereto === '0' ? 'page' : 'post' ),
+            'post_content' => $post_content,
+            'post_status'  => $poststatus,
         );
-        
+
         // Insert the post into the database
         $id = wp_insert_post( $my_post );
     }
-    else 
+    else
     {
-        $id = ($whereto == '2'?$publishpage:$publishpost);
+        $id   = intval( $whereto === '2' ? $publishpage : $publishpost );
         $post = get_post( $id );
-        $pos = strpos($post->post_content,$content);
-        if ($pos === false)
-        {
-            $my_post = array(
-                  'ID'           => $id,
-                  'post_content' => $content.$post->post_content,
-              );
-            // Update the post into the database
-            wp_update_post( $my_post );
+        if ( $post ) {
+            $pos = strpos( $post->post_content, $content );
+            if ( $pos === false )
+            {
+                $my_post = array(
+                    'ID'           => $id,
+                    'post_content' => $content . $post->post_content,
+                );
+                // Update the post into the database
+                wp_update_post( $my_post );
+            }
         }
     }
-    return get_permalink($id);
+    return $id ? get_permalink( $id ) : admin_url( 'admin.php?page=cpabc_appointments.php' );
 }
 
 

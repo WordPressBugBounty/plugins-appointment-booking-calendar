@@ -431,7 +431,7 @@ function cpabc_appointments_get_public_form() {
 
     ?>
 </p> <!-- this p tag fixes a IE bug -->
-<link rel="stylesheet" type="text/css" href="<?php echo esc_attr(plugins_url('../TDE_AppCalendar/'.(is_admin()?'':cpabc_get_option('calendar_theme','friendly/')).'all-css.css', __FILE__)); ?>" />
+<link rel="stylesheet" type="text/css" href="<?php echo esc_attr(plugins_url('../TDE_AppCalendar/'.(is_admin()?'light/':cpabc_get_option('calendar_theme','friendly/')).'all-css.css', __FILE__)); ?>" />
 <script>
 var pathCalendar = "<?php echo esc_js(cpabc_appointment_get_site_url()); ?>";
 var cpabc_global_date_format = '<?php echo esc_js(cpabc_get_option('calendar_dateformat', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_DATEFORMAT)); ?>';
@@ -469,7 +469,7 @@ var cpabc_global_pagedate = '<?php
     try {
         cpabc_current_calendar_item = id;
         document.getElementById("calarea_"+cpabc_current_calendar_item).style.display = "";
-        <?php if (!isset($_GET["fl_builder"])) { ?>initAppCalendar("cal"+cpabc_current_calendar_item,<?php echo esc_js(is_admin()?'3':cpabc_get_option('calendar_pages', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_PAGES)); ?>,2,"<?php echo esc_js(cpabc_auto_language(cpabc_get_option('calendar_language', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_LANGUAGE))); ?>",{m1:"<?php _e('Please select the appointment time.','appointment-booking-calendar'); ?>"});<?php } ?>
+        <?php if (!isset($_GET["fl_builder"])) { ?>initAppCalendar("cal"+cpabc_current_calendar_item,<?php echo esc_js(is_admin()?'4':cpabc_get_option('calendar_pages', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_PAGES)); ?>,2,"<?php echo esc_js(cpabc_auto_language(cpabc_get_option('calendar_language', CPABC_APPOINTMENTS_DEFAULT_CALENDAR_LANGUAGE))); ?>",{m1:"<?php _e('Please select the appointment time.','appointment-booking-calendar'); ?>"});<?php } ?>
         cpabc_current_calendar_initialized = true;
     } catch (e) {}    
  }
@@ -477,6 +477,9 @@ var cpabc_global_pagedate = '<?php
  {
     if (document.getElementById("selDaycal"+cpabc_current_calendar_item ).value != '')
     {
+        if (typeof cpabc_clearDateTimeError === 'function') {
+            cpabc_clearDateTimeError();
+        }
         var timead = "";
         var hour = document.getElementById("selHourcal"+cpabc_current_calendar_item ).value;
         if (cpabc_global_military_time == '0')
@@ -533,7 +536,12 @@ var cpabc_global_pagedate = '<?php
     var selst = ""+document.getElementById("selDaycal"+cpabc_current_calendar_item).value;    
     if (selst == '')
     {
-        alert('<?php echo str_replace("'","\'",esc_html(__('Please select date and time','appointment-booking-calendar'))); ?>.');
+        var dtmsg = '<?php echo str_replace("'","\'",esc_html(__('Please select date and time','appointment-booking-calendar'))); ?>.';
+        if (typeof cpabc_showDateTimeError === 'function') {
+            cpabc_showDateTimeError(dtmsg);
+        } else {
+            alert(dtmsg);
+        }
         return false;
     }
     selst = selst.match(/;/g);selst = selst.length;
@@ -542,7 +550,11 @@ var cpabc_global_pagedate = '<?php
         var almsg = '<?php echo str_replace("'","\'",__('Please select at least %1 time-slots. Currently selected: %2 time-slots.','appointment-booking-calendar')); ?>';
         almsg = almsg.replace('%1','<?php echo esc_js($opt); ?>');
         almsg = almsg.replace('%2',selst);
-        alert(almsg);
+        if (typeof cpabc_showDateTimeError === 'function') {
+            cpabc_showDateTimeError(almsg);
+        } else {
+            alert(almsg);
+        }
         return false;
     }
     if (selst > <?php $opt = cpabc_get_option('max_slots', '1'); if ($opt == '') $opt = '1'; echo esc_js($opt); ?>)
@@ -550,12 +562,20 @@ var cpabc_global_pagedate = '<?php
         var almsg = '<?php echo str_replace("'","\'",__('Please select a maximum of %1 time-slots. Currently selected: %2 time-slots.','appointment-booking-calendar')); ?>';
         almsg = almsg.replace('%1','<?php echo esc_js($opt); ?>');
         almsg = almsg.replace('%2',selst);
-        alert(almsg);
+        if (typeof cpabc_showDateTimeError === 'function') {
+            cpabc_showDateTimeError(almsg);
+        } else {
+            alert(almsg);
+        }
         return false;
-    } 
+    }
     <?php if (!is_admin() && cpabc_get_option('dexcv_enable_captcha', CPABC_TDEAPP_DEFAULT_dexcv_enable_captcha) != 'false') { ?> if (form.hdcaptcha.value == '')
     {
-        alert('<?php echo str_replace("'","\'",esc_html(__('Please enter the captcha verification code','appointment-booking-calendar'))); ?>.');
+        if (typeof cpabc_showCaptchaError === 'function') {
+            cpabc_showCaptchaError('<?php echo str_replace("'","\'",esc_html(__('Please enter the captcha verification code.','appointment-booking-calendar'))); ?>');
+        } else {
+            alert('<?php echo str_replace("'","\'",esc_html(__('Please enter the captcha verification code','appointment-booking-calendar'))); ?>.');
+        }
         return false;
     }
     $dexQuery = jQuery.noConflict();
@@ -566,9 +586,14 @@ var cpabc_global_pagedate = '<?php
     }).responseText;
     if (result.indexOf("captchafailed") != -1)
     {
-        $dexQuery("#captchaimg").attr('src', $dexQuery("#captchaimg").attr('src')+String.fromCharCode(38)+Math.floor((Math.random() * 99999) + 1));
+        $dexQuery("#captchaimg").attr('src', $dexQuery("#captchaimg").attr('src').replace(/&r=\d+/g, '')+String.fromCharCode(38)+"r="+Math.floor((Math.random() * 99999) + 1));
         cpabc_click_enabled = true;
-        alert('<?php echo str_replace("'","\'",esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar'))); ?>');        
+        form.hdcaptcha.value = '';
+        if (typeof cpabc_showCaptchaError === 'function') {
+            cpabc_showCaptchaError('<?php echo str_replace("'","\'",esc_html(cpabc_get_option('cv_text_enter_valid_captcha', __('Incorrect captcha code. Please try again.','appointment-booking-calendar')))); ?>');
+        } else {
+            alert('<?php echo str_replace("'","\'",esc_html(__('Incorrect captcha code. Please try again.','appointment-booking-calendar'))); ?>');
+        }
         return false;
     }
     else <?php } ?>

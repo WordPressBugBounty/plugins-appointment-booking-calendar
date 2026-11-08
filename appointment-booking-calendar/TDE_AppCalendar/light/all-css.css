@@ -505,7 +505,7 @@ width:200px;
 	text-align:center;
 }
 .yui-calendar td.no-working { background-color:#ddd; }
-.yui-calendar td.calcell.restricted { text-decoration:line-through; margin:2px;/*background-color:#E0E0E0;*/text-align:right;}
+.yui-calendar td.calcell.restricted { text-decoration:line-through; margin:2px;opacity:0.3;/*background-color:#E0E0E0;*/text-align:right;}
 .yui-calendar td.calcell.restricted2 { text-decoration:line-through; margin:2px;background-color:#E0E0E0;text-align:right;width:100px;}
 .yui-calendar td.calcell.today td.calcell.restricted{	background-color:#E0E0E0;text-align:right;}
 .yui-calendar td.calcell.reserveddate { background-color:#777777;  }
