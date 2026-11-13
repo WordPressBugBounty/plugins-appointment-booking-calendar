@@ -293,7 +293,7 @@
         if (option.dayWithColumns == "dc_subjects" || option.dayWithColumns == "dc_locations" )
             option.columnsList = eval(option.dayWithColumns);
         //template for month and date
-        var __SCOLLEVENTTEMP = "<DIV style=\"WIDTH:${width};top:${top};left:${left};\" title1=\"${title}\" class=\"chip chip${i} ${drag}\"><div class=\"dhdV\" style=\"display:none\">${data}</div><DIV style=\"BORDER-BOTTOM-COLOR:${bdcolor}\" class=ct>&nbsp;</DIV><DL class=\"${userEdition}\" style=\"BORDER-BOTTOM-COLOR:${bdcolor}; BACKGROUND-COLOR:${bgcolor1}; BORDER-TOP-COLOR: ${bdcolor}; HEIGHT: ${height}px; BORDER-RIGHT-COLOR:${bdcolor}; BORDER-LEFT-COLOR:${bdcolor}\"><DT style=\"BACKGROUND-COLOR:${bgcolor2}\">${starttime} ${icon}</DT><DD><SPAN class=\"t-title\">${content}</SPAN><div class=\"t-loc\">${location}</div><div class=\"t-desc\">${description}</div></DD><DIV class='resizer' style='display:${redisplay}'><DIV class=rszr_icon>&nbsp;</DIV></DIV></DL><DIV style=\"BORDER-BOTTOM-COLOR:${bdcolor}; BACKGROUND-COLOR:${bgcolor1}; BORDER-TOP-COLOR: ${bdcolor}; BORDER-RIGHT-COLOR: ${bdcolor}; BORDER-LEFT-COLOR:${bdcolor}\" class=cb1>&nbsp;</DIV><DIV style=\"BORDER-BOTTOM-COLOR:${bdcolor}; BORDER-TOP-COLOR:${bdcolor}; BORDER-RIGHT-COLOR:${bdcolor}; BORDER-LEFT-COLOR:${bdcolor}\" class=cb2>&nbsp;</DIV></DIV>";
+        var __SCOLLEVENTTEMP = "<div style=\"width:${width};top:${top};left:${left};\" title1=\"${title}\" class=\"chip chip${i}${drag}\"><div class=\"dhdV\" style=\"display:none\">${data}</div><dl class=\"${userEdition}\" style=\"border-color:${bdcolor}; background-color:${bgcolor1}; height:${height}px;\"><dt style=\"background-color:${bgcolor2}\">${starttime}${icon}</dt><dd><span class=\"t-title\">${content}</span><div class=\"t-loc\">${location}</div><div class=\"t-desc\">${description}</div></dd><div class=\"resizer\" style=\"display:${redisplay}\"><div class=\"rszr_icon\">&nbsp;</div></div></dl></div>";
         var __ALLDAYEVENTTEMP = '<div class="rb-o ${eclass}" id="${id}" title1="${title}" style="color:${color};"><div class="dhdV" style="display:none">${data}</div><div class="${extendClass} rb-m" style="background-color:${color}"><div class="rb-i t-title ${userEdition}">${content}</div><div class="rb-i t-loc">${location}</div><div class="rb-i t-desc">${description}</div></div></div>';
         var __MonthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         var __LASSOTEMP = "<div class='drag-lasso' style='left:${left}px;top:${top}px;width:${width}px;height:${height}px;'>&nbsp;</div>";
@@ -583,10 +583,10 @@
                             if (iW>$(this).width())
                                 iW=$(this).width();
                         });
-                        iW +=4; //margin:1px;border:1px
+                        iW +=12; //margin:1px;border:1px
                         var cN = (Math.floor(gW/iW)==0)?1:Math.floor(gW/iW);
                         var nW = Math.floor(gW/cN);
-                        nW -=4; //margin:1px;border:1px
+                        nW -=12; //margin:1px;border:1px
                         option.newWidthGroup = nW;
                         $('#nmonths'+option.thecontainer).find('.ui-datepicker-multi .ui-datepicker-group').width(nW);
                     }
@@ -882,8 +882,7 @@
                                  collision: "fit",
                                  of: $(idover).parent()
                                }
-                             }).addClass("mv_dlg_nmonth").parent().addClass("mv_dlg") ;
-                             $("<div id=\"mv_corner\" />").appendTo($(".mv_dlg .ui-dialog-titlebar"));
+                             }).addClass("mv_dlg_nmonth").parent().addClass("mv_dlg") ;                             
                              showDialogNMonth(dates,item,idover);
                           //e.stopPropagation();
                           e.stopPropagation();
@@ -905,8 +904,7 @@
                                  collision: "fit",
                                  of: $(".myover").parent()
                                }
-                             }).addClass("mv_dlg_nmonth").parent().addClass("mv_dlg");
-                             $("<div id=\"mv_corner\" />").appendTo($(".mv_dlg .ui-dialog-titlebar"));
+                             }).addClass("mv_dlg_nmonth").parent().addClass("mv_dlg");                             
                              try { var item = datetostr(strtodate($(this).attr("title")+" 00:00"));showDialogNMonth(dates,item,".myover"); }catch (e) {}
                         }
                      }).bind('mouseout',function(){
@@ -1302,7 +1300,7 @@
             html.push("</div>");
             var bH = GetMonthViewBodyHeight() - GetMonthViewHeaderHeight();
 
-            html.push("<div id=\"mvEventContainer"+config.thecontainer+"\" class=\"mv-event-container\" style=\"top:18px;height:", bH, "px;", "\">");
+            html.push("<div id=\"mvEventContainer"+config.thecontainer+"\" class=\"mv-event-container\" style=\"top:36px;height:", bH, "px;", "\">");
             BuilderMonthBody(html, showday, config.weekstartday, events, bH,config);
             html.push("</div>");
             gridcontainer.html(html.join(""));
@@ -1885,10 +1883,10 @@
             p.top = sP + "px";
             p.left = (e.left * 100) + "%";
             p.width = (e.aQ * 100) + "%";
-            if (eP==0 && sP>0)
-                p.height = (sP - 4);
+            if (eP == 0 && sP > 0)
+                p.height = Math.max(20, sP - 2);
             else
-                p.height = (eP - sP - 4);
+                p.height = Math.max(20, eP - sP - 2);
             p.i = index;
             if (option.enableDrag && (option.readonly != true && (option.userEdit || ((option.userOwner==e.event[12]) && option.userEditOwner ))) && e.event[8] == 1 && !e.noResizer) {
                 p.drag = "drag";
@@ -1911,7 +1909,7 @@
             return option.height;
         }
         function GetMonthViewHeaderHeight() {
-            return 26;
+            return 36;
         }
         function BuilderMonthBody(htb, showday, startday, events, bodyHeight,config) {
             var firstdate = new Date(showday.getFullYear(), showday.getMonth(), 1);
@@ -1932,7 +1930,7 @@
             option.vend = enddate;
             var themonth = DateAdd("d", 15, startdate);
             option.datestrshow = __MonthNameLarge[themonth.getMonth()]+" "+themonth.getFullYear() ;//CalDateShow(startdate, enddate);
-            bodyHeight = bodyHeight - 18 * rc;
+            bodyHeight = bodyHeight - 28 * rc;
             var rowheight = bodyHeight / rc;
             var roweventcount = parseInt(rowheight / (option.cellheight/2) /*21*/);
             if (rowheight % (option.cellheight/2) /*21*/ > 15) {
@@ -2596,9 +2594,8 @@
             e.stopPropagation();
         }
         function move_mv_dlg(){
-            $(".mv_dlg").css("top",parseFloat($(".mv_dlg").css("top"))+17);
-            $(".mv_dlg").css("left",parseFloat($(".mv_dlg").css("left"))-29);
-            $(".mv_dlg").css("height","0px");
+            $(".mv_dlg").css("top", parseFloat($(".mv_dlg").css("top")) + 8);
+            $(".mv_dlg").css("height", "auto");
         }
         function parseDate(str){
             var s = str.split(" ");
@@ -2872,8 +2869,7 @@
                              of: $(this)
                            }})
                         dialogUnBlur();   
-                        $("#bbit-cs-buddle").parent().addClass("mv_dlg");
-                        $("<div id=\"mv_corner\" />").appendTo($(".mv_dlg .ui-dialog-titlebar"));
+                        $("#bbit-cs-buddle").parent().addClass("mv_dlg");                        
                         move_mv_dlg();
                         var calbutton = $("#bbit-cs-delete");
                         var lbtn = $("#bbit-cs-editLink");
@@ -2926,7 +2922,6 @@
                              of: $(this)
                            }})
                         $("#bbit-cs-buddle").parent().addClass("mv_dlg");
-                        $("<div id=\"mv_corner\" />").appendTo($(".mv_dlg .ui-dialog-titlebar"));
                         move_mv_dlg();
                         var calbutton = $("#bbit-cs-delete");
                         var lbtn = $("#bbit-cs-editLink");
@@ -3210,7 +3205,6 @@
                 buddle.dialog( "open" );
                 move_mv_dlg();
                 $("#bbit-cal-buddle").parent().addClass("mv_dlg");
-                $("<div id=\"mv_corner\" />").appendTo($(".mv_dlg .ui-dialog-titlebar"));
                 var calbutton = $("#bbit-cal-quickAddBTN");
                 var lbtn = $("#bbit-cal-editLink");
 

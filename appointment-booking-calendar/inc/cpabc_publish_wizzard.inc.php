@@ -8,216 +8,297 @@ if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
 }
 
 global $wpdb;
-$nonce  = wp_create_nonce( 'abc_update_actions_pwizard' );
-$cal_id = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
+$plugslug = 'cpabc_appointments.php';
+$nonce    = wp_create_nonce( 'abc_update_actions_pwizard' );
+$cal_id   = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
+if ( $cal_id < 1 ) {
+    $cal_id = 1;
+}
+
+$calendar_name = '';
+$cal_row       = $wpdb->get_row(
+    $wpdb->prepare(
+        'SELECT `' . CPABC_TDEAPP_CONFIG_USER . '` AS uname FROM `' . CPABC_APPOINTMENTS_CONFIG_TABLE_NAME . '` WHERE `' . CPABC_TDEAPP_CONFIG_ID . '` = %d',
+        $cal_id
+    )
+);
+if ( $cal_row && ! empty( $cal_row->uname ) ) {
+    $calendar_name = $cal_row->uname;
+}
 ?>
 
-<div class="wrap">
-    <h1><?php esc_html_e( 'Publish Appointment Booking Calendar', 'appointment-booking-calendar' ); ?></h1>
+<style type="text/css">
+    .cpabc-admin-wrap {
+        max-width: 1080px;
+        margin-top: 20px;
+    }
+    .cpabc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .cpabc-header h1 {
+        margin: 0;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 23px;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    .cpabc-header h1 .dashicons {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+        color: #2271b1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cpabc-cal-pill {
+        font-size: 13px;
+        font-weight: 600;
+        background: #f0f6fc;
+        color: #2271b1;
+        border: 1px solid #c5d9ed;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+    .cpabc-header-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .wp-core-ui .button.cpabc-btn-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px;
+        min-height: 32px;
+        padding: 0 12px;
+        line-height: 1 !important;
+        white-space: nowrap;
+        margin: 0 !important;
+    }
+    .wp-core-ui .button.cpabc-btn-icon .dashicons {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        line-height: 1 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    .cpabc-card {
+        background: #ffffff;
+        border: 1px solid #c3c4c7;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    .cpabc-card-header {
+        padding: 14px 24px;
+        background: #f6f7f7;
+        border-bottom: 1px solid #dcdcde;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .cpabc-card-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: #1d2327;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .cpabc-card-header h2 .dashicons {
+        color: #2271b1;
+    }
+    .cpabc-card-body {
+        padding: 24px;
+    }
+    .ahb-section label {
+        font-weight: 600;
+    }
+    .ahb-section select,
+    .ahb-section input[type="text"] {
+        width: 100%;
+        max-width: 450px;
+    }
+    .ahb-shortcode-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px dashed #8c8f94;
+        background-color: #fffacd;
+        padding: 10px 14px;
+        border-radius: 4px;
+        margin: 4px 0 8px 0;
+        max-width: 450px;
+        box-sizing: border-box;
+    }
+    .ahb-shortcode-box code {
+        font-size: 13.5px;
+        font-weight: bold;
+        flex-grow: 1;
+        background: transparent;
+        padding: 0;
+        color: #1d2327;
+    }
+    .ahb-success-card {
+        background: #ffffff;
+        border: 1px solid #c3c4c7;
+        border-left: 4px solid #00a32a;
+        border-radius: 6px;
+        padding: 28px 32px;
+        margin: 20px 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        box-sizing: border-box;
+    }
+    .ahb-success-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 16px 0;
+    }
+    .ahb-success-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: #edfaef;
+        color: #00a32a;
+        border-radius: 50%;
+        font-size: 18px;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    .ahb-success-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: #1d2327;
+        line-height: 1.3;
+    }
+    .ahb-url-box {
+        background: #f6f7f7;
+        border: 1px solid #dcdcde;
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin: 16px 0 24px 0;
+        font-size: 14px;
+        color: #3c434a;
+        word-break: break-all;
+    }
+    .ahb-url-box a {
+        font-weight: 600;
+        color: #2271b1;
+        text-decoration: none;
+        margin-left: 4px;
+    }
+    .ahb-url-box a:hover {
+        text-decoration: underline;
+    }
+    .ahb-actions-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1d2327;
+        margin: 0 0 12px 0;
+    }
+    .ahb-action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 24px;
+        clear: both;
+    }
+    .ahb-draft-notice {
+        background: #fcf9e8;
+        border: 1px solid #ebd778;
+        border-radius: 4px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #50575e;
+        line-height: 1.5;
+        clear: both;
+    }
+    .ahb-draft-notice strong {
+        color: #1d2327;
+    }
+    .ahb-builder-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        margin-top: 14px;
+    }
+    .ahb-builder-box {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px;
+        background: #fafafa;
+    }
+    .ahb-builder-box h4 {
+        margin: 0 0 10px 0;
+        font-size: 13px;
+        color: #1d2327;
+    }
+    .ahb-builder-box img {
+        max-width: 100%;
+        height: auto;
+        border: 1px solid #dcdcde;
+        border-radius: 3px;
+    }
+    .cpabc-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-top: 16px;
+        margin-top: 16px;
+        border-top: 1px solid #dcdcde;
+    }
+</style>
 
-    <style type="text/css">
-        .ahb-buttons-container {
-            margin: 1em 1em 1em 0;
-            max-width: 850px;
-        }
-        .ahb-return-link {
-            float: right;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .ahb-section-container {
-            border: 1px solid #e6e6e6;
-            border-radius: 4px;
-            margin: 1em 1em 1.5em 0;
-            background: #ffffff;
-            max-width: 850px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-        .ahb-section {
-            padding: 24px;
-            display: none;
-        }
-        .ahb-section label {
-            font-weight: 600;
-        }
-        .ahb-section-active {
-            display: block;
-        }
-        .ahb-section select,
-        .ahb-section input[type="text"] {
-            width: 100%;
-            max-width: 450px;
-        }
-        .cpmvcontainer {
-            font-size: 15px !important;
-        }
-        .ahb-shortcode-box {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            border: 1px dashed #8c8f94;
-            background-color: #fffacd;
-            padding: 12px 15px;
-            border-radius: 4px;
-            margin: 4px 0 8px 0;
-            max-width: 450px;
-            box-sizing: border-box;
-        }
-        .ahb-shortcode-box code {
-            font-size: 13.5px;
-            font-weight: bold;
-            flex-grow: 1;
-            background: transparent;
-            padding: 0;
-            color: #1d2327;
-        }
-        /* Success Card Styles */
-        .ahb-success-card {
-            background: #ffffff;
-            border: 1px solid #dcdcde;
-            border-left: 4px solid #00a32a;
-            border-radius: 6px;
-            padding: 28px 32px;
-            margin: 20px 0;
-            max-width: 780px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
-            box-sizing: border-box;
-        }
-        .ahb-success-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0 0 16px 0;
-        }
-        .ahb-success-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            background: #edfaef;
-            color: #00a32a;
-            border-radius: 50%;
-            font-size: 18px;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        .ahb-success-header h2 {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-            color: #1d2327;
-            line-height: 1.3;
-        }
-        .ahb-url-box {
-            background: #f6f7f7;
-            border: 1px solid #dcdcde;
-            border-radius: 4px;
-            padding: 12px 16px;
-            margin: 16px 0 24px 0;
-            font-size: 14px;
-            color: #3c434a;
-            word-break: break-all;
-        }
-        .ahb-url-box a {
-            font-weight: 600;
-            color: #2271b1;
-            text-decoration: none;
-            margin-left: 4px;
-        }
-        .ahb-url-box a:hover {
-            text-decoration: underline;
-        }
-        .ahb-actions-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1d2327;
-            margin: 0 0 12px 0;
-        }
-        .ahb-action-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 24px;
-            clear: both;
-        }
-        .ahb-action-buttons .button {
-            float: none !important;
-            margin: 0 !important;
-            padding: 6px 18px !important;
-            height: auto !important;
-            line-height: 1.6 !important;
-            font-size: 14px !important;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .ahb-draft-notice {
-            background: #fcf9e8;
-            border: 1px solid #ebd778;
-            border-radius: 4px;
-            padding: 12px 16px;
-            font-size: 13px;
-            color: #50575e;
-            line-height: 1.5;
-            clear: both;
-        }
-        .ahb-draft-notice strong {
-            color: #1d2327;
-        }
-        /* Helper Note Card */
-        .ahb-note-card {
-            max-width: 850px;
-            border: 1px solid #e6e6e6;
-            border-radius: 4px;
-            background: #ffffff;
-            margin: 1em 1em 1em 0;
-        }
-        .ahb-note-header {
-            padding: 12px 20px;
-            border-bottom: 1px solid #e6e6e6;
-            background: #f6f7f7;
-            font-weight: 600;
-            font-size: 14px;
-            color: #1d2327;
-        }
-        .ahb-note-body {
-            padding: 16px 20px;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #3c434a;
-        }
-        .ahb-builder-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 14px;
-        }
-        .ahb-builder-box {
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 12px;
-            background: #fafafa;
-        }
-        .ahb-builder-box h4 {
-            margin: 0 0 10px 0;
-            font-size: 13px;
-            color: #1d2327;
-        }
-        .ahb-builder-box img {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #dcdcde;
-            border-radius: 3px;
-        }
-    </style>
+<div class="wrap cpabc-admin-wrap">
 
-    <div class="ahb-buttons-container">
-        <a href="<?php echo esc_url( admin_url( 'admin.php?page=cpabc_appointments.php' ) ); ?>" class="ahb-return-link">
-            &larr; <?php esc_html_e( 'Return to the calendars list', 'appointment-booking-calendar' ); ?>
-        </a>
-        <div class="clear"></div>
+    <div class="cpabc-header">
+        <h1>
+            <span class="dashicons dashicons-megaphone"></span>
+            <?php esc_html_e( 'Publish Appointment Booking Calendar', 'appointment-booking-calendar' ); ?>
+            <?php if ( $calendar_name !== '' ) : ?>
+                <span class="cpabc-cal-pill"><?php echo esc_html( $calendar_name ); ?> (#<?php echo intval( $cal_id ); ?>)</span>
+            <?php endif; ?>
+        </h1>
+
+        <div class="cpabc-header-actions">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( $cal_id ) ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-admin-generic"></span>
+                <span><?php esc_html_e( 'Settings', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( $cal_id ) . '&list=1' ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-clipboard"></span>
+                <span><?php esc_html_e( 'Bookings List', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( $cal_id ) . '&addbk=1' ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-plus-alt2"></span>
+                <span><?php esc_html_e( 'Add Booking', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-arrow-left-alt2"></span>
+                <span><?php esc_html_e( 'Return to the calendars list', 'appointment-booking-calendar' ); ?></span>
+            </a>
+        </div>
     </div>
 
     <form method="post" action="?page=cpabc_appointments.php&pwizard=1" name="regForm" id="regForm">
@@ -245,11 +326,13 @@ $cal_id = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
                 <p class="ahb-actions-label"><?php esc_html_e( 'Next steps:', 'appointment-booking-calendar' ); ?></p>
 
                 <div class="ahb-action-buttons">
-                    <button class="button button-primary" type="button" onclick="window.open('<?php echo esc_js( $cpabc_postURL ); ?>', '_blank');">
-                        <?php esc_html_e( 'View the Published Booking Form', 'appointment-booking-calendar' ); ?>
+                    <button class="button button-primary cpabc-btn-icon" type="button" onclick="window.open('<?php echo esc_js( $cpabc_postURL ); ?>', '_blank');">
+                        <span class="dashicons dashicons-external"></span>
+                        <span><?php esc_html_e( 'View the Published Booking Form', 'appointment-booking-calendar' ); ?></span>
                     </button>
-                    <button class="button button-secondary" type="button" onclick="window.location.href='?page=cpabc_appointments.php&cal=<?php echo esc_js( $published_cal_id ); ?>';">
-                        <?php esc_html_e( 'Edit booking form settings and availability', 'appointment-booking-calendar' ); ?>
+                    <button class="button button-secondary cpabc-btn-icon" type="button" onclick="window.location.href='?page=cpabc_appointments.php&cal=<?php echo esc_js( $published_cal_id ); ?>';">
+                        <span class="dashicons dashicons-admin-generic"></span>
+                        <span><?php esc_html_e( 'Edit booking form settings and availability', 'appointment-booking-calendar' ); ?></span>
                     </button>
                 </div>
 
@@ -259,9 +342,15 @@ $cal_id = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
                 </div>
             </div>
         <?php else : ?>
-            <div class="ahb-section-container">
-                <div class="ahb-section ahb-section-active" data-step="1">
-                    <table class="form-table" role="presentation">
+            <div class="cpabc-card">
+                <div class="cpabc-card-header">
+                    <h2>
+                        <span class="dashicons dashicons-admin-page"></span>
+                        <?php esc_html_e( 'Publish Configuration', 'appointment-booking-calendar' ); ?>
+                    </h2>
+                </div>
+                <div class="cpabc-card-body ahb-section">
+                    <table class="form-table" role="presentation" style="margin-top:0;">
                         <tbody>
                             <tr valign="top">
                                 <th scope="row">
@@ -364,8 +453,9 @@ $cal_id = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
                                 <td>
                                     <div class="ahb-shortcode-box">
                                         <code id="ahb_shortcode_text">[CPABC_APPOINTMENT_CALENDAR calendar="<?php echo intval( $cal_id ); ?>"]</code>
-                                        <button type="button" class="button button-small" onclick="ahb_copy_shortcode(this);">
-                                            <?php esc_html_e( 'Copy', 'appointment-booking-calendar' ); ?>
+                                        <button type="button" class="button button-small cpabc-btn-icon" onclick="ahb_copy_shortcode(this);">
+                                            <span class="dashicons dashicons-clipboard"></span>
+                                            <span><?php esc_html_e( 'Copy', 'appointment-booking-calendar' ); ?></span>
                                         </button>
                                     </div>
                                     <p class="description">
@@ -376,20 +466,23 @@ $cal_id = isset( $_GET['cal'] ) ? intval( $_GET['cal'] ) : 1;
                         </tbody>
                     </table>
 
-                    <hr />
-
-                    <div class="ahb-buttons-container" style="margin-bottom:0;">
-                        <input type="submit" id="subbtnnow" value="<?php esc_attr_e( 'Publish Calendar', 'appointment-booking-calendar' ); ?>" class="button button-primary" style="float:right;" />
-                        <div class="clear"></div>
+                    <div class="cpabc-card-footer">
+                        <button type="submit" id="subbtnnow" class="button button-primary cpabc-btn-icon">
+                            <span class="dashicons dashicons-megaphone"></span>
+                            <span><?php esc_html_e( 'Publish Calendar', 'appointment-booking-calendar' ); ?></span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div id="metabox_basic_settings" class="ahb-note-card">
-                <div class="ahb-note-header">
-                    <span><?php esc_html_e( 'Note: Other Ways to Publish (Gutenberg, Elementor & Classic Editor)', 'appointment-booking-calendar' ); ?></span>
+            <div id="metabox_basic_settings" class="cpabc-card">
+                <div class="cpabc-card-header">
+                    <h2>
+                        <span class="dashicons dashicons-info-outline"></span>
+                        <?php esc_html_e( 'Note: Other Ways to Publish (Gutenberg, Elementor & Classic Editor)', 'appointment-booking-calendar' ); ?>
+                    </h2>
                 </div>
-                <div class="ahb-note-body">
+                <div class="cpabc-card-body">
                     <p style="margin-top:0;">
                         <?php esc_html_e( 'You can also publish the form in a post/page, use the dedicated icon', 'appointment-booking-calendar' ); ?>
                         <img hspace="5" style="vertical-align:middle;" src="<?php echo esc_url( plugins_url( '../images/cpabc_apps.gif', __FILE__ ) ); ?>" alt="<?php esc_attr_e( 'Insert Appointment Booking Calendar', 'appointment-booking-calendar' ); ?>" />
@@ -430,21 +523,20 @@ function ahb_copy_shortcode(btn) {
     var text = (codeEl.textContent || codeEl.innerText).trim();
 
     function showCopiedFeedback() {
-        var originalText = btn.getAttribute('data-original') || btn.textContent;
-        btn.setAttribute('data-original', originalText);
-        btn.textContent = '✓ <?php echo esc_js( __( 'Copied!', 'appointment-booking-calendar' ) ); ?>';
+        var labelSpan = btn.querySelector('span:last-child') || btn;
+        var originalText = labelSpan.getAttribute('data-original') || labelSpan.textContent;
+        labelSpan.setAttribute('data-original', originalText);
+        labelSpan.textContent = '<?php echo esc_js( __( 'Copied!', 'appointment-booking-calendar' ) ); ?>';
         setTimeout(function() {
-            btn.textContent = originalText;
+            labelSpan.textContent = originalText;
         }, 2000);
     }
 
-    // 1. Modern clipboard API (HTTPS / localhost)
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(showCopiedFeedback).catch(function() {
             ahb_fallback_copy(text, showCopiedFeedback);
         });
     } else {
-        // 2. Fallback for HTTP and older browsers
         ahb_fallback_copy(text, showCopiedFeedback);
     }
 }

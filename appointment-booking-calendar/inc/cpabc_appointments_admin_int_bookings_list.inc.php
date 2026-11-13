@@ -1,193 +1,187 @@
 <?php
 
-if ( !is_admin() )
-{
+if ( ! is_admin() ) {
     echo 'Direct access not allowed.';
     exit;
 }
 
-if (!defined('CP_CALENDAR_ID'))
-    define ('CP_CALENDAR_ID', 1);
+if ( ! defined( 'CP_CALENDAR_ID' ) ) {
+    define( 'CP_CALENDAR_ID', 1 );
+}
 
 global $wpdb;
 
+$plugslug     = 'cpabc_appointments.php';
 $current_user = wp_get_current_user();
+$format       = cpabc_appointments_getDateFormat();
+$message      = '';
 
-$format = cpabc_appointments_getDateFormat();
-
-$message = "";
-
-$records_per_page = 50;                                                                                  
+$records_per_page = 50;
 
 function cpabc_bklist_verify_nonce() {
-    if (isset($_GET['rsave']) && $_GET['rsave'] != '')
-        $nonce = sanitize_text_field($_GET['rsave']);
-    elseif ( isset( $_POST['rsave'] ) )
+    if ( isset( $_GET['rsave'] ) && $_GET['rsave'] !== '' ) {
+        $nonce = sanitize_text_field( wp_unslash( $_GET['rsave'] ) );
+    } elseif ( isset( $_POST['rsave'] ) ) {
         $nonce = sanitize_text_field( wp_unslash( $_POST['rsave'] ) );
-    else
+    } else {
         $nonce = '';
-    $verify_nonce = wp_verify_nonce( $nonce, 'uname_abc_bklist');
-    if (!$verify_nonce)
-    {
+    }
+    $verify_nonce = wp_verify_nonce( $nonce, 'uname_abc_bklist' );
+    if ( ! $verify_nonce ) {
         echo 'Error: Form cannot be authenticated (nonce failed). Please contact our <a href="https://abc.dwbooster.com/contact-us">support service</a> for verification and solution. Thank you.';
         exit;
-    } 
+    }
 }
 
-if (isset($_GET['delmark']) && $_GET['delmark'] != '')
-{
+if ( isset( $_GET['delmark'] ) && $_GET['delmark'] !== '' ) {
     cpabc_bklist_verify_nonce();
-    for ($i=0; $i<=$records_per_page; $i++)
-    if (isset($_GET['c'.$i]) && $_GET['c'.$i] != '')   
-        $wpdb->query( $wpdb->prepare('DELETE FROM `'.CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME.'` WHERE id=%d', $_GET['c'.$i])  );       
-    $message = "Marked items deleted";
-}
-else if (isset($_GET['ld']) && $_GET['ld'] != '')
-{
-    cpabc_bklist_verify_nonce();
-    $wpdb->query( $wpdb->prepare('DELETE FROM `'.CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME.'` WHERE id=%d', $_GET['ld']) );       
-    $message = "Item deleted";
-} 
-else if (isset($_GET['del']) && $_GET['del'] == 'all')
-{        
-    cpabc_bklist_verify_nonce();
-    $wpdb->query( $wpdb->prepare( 'DELETE FROM `'.CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME.'` WHERE appointment_calendar_id=%d', CP_CALENDAR_ID ) );           
-    $message = "All items deleted";
-}
-else if (isset($_GET['paid']) && intval($_GET['paid']))
-{
-	cpabc_bklist_verify_nonce();
-    $item = $wpdb->get_row("SELECT * FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." WHERE id=".intval($_GET['paid']));
-    $itemdetails = $wpdb->get_row("SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($item->reference));    
-    $data = unserialize($itemdetails->buffered_date);
-    if (intval($_GET['paidac']))
-    {
-        $data["payment_type"] = 'Manually updated';
+    for ( $i = 0; $i <= $records_per_page; $i++ ) {
+        if ( isset( $_GET[ 'c' . $i ] ) && $_GET[ 'c' . $i ] !== '' ) {
+            $wpdb->query( $wpdb->prepare( 'DELETE FROM `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '` WHERE id=%d', intval( $_GET[ 'c' . $i ] ) ) );
+        }
     }
-    else
-    {
-        unset($data["payment_type"]);
-        unset($data["txnid"]);
-    }
-    //print_r($data);
-    do_action( 'cpabc_update_paid_status', intval($item->reference), (intval($_GET['paidac'])?true:false) );
-    $wpdb->query("UPDATE ".CPABC_APPOINTMENTS_TABLE_NAME." set buffered_date='".esc_sql(serialize($data))."' WHERE id=".intval($item->reference));   
-    $message = "Paid status updated.";
-}
-else if (isset($_GET['cancel']) && $_GET['cancel'] != '')
-{    
+    $message = __( 'Marked items deleted', 'appointment-booking-calendar' );
+} elseif ( isset( $_GET['ld'] ) && $_GET['ld'] !== '' ) {
     cpabc_bklist_verify_nonce();
-    $cancelc = intval($_GET['cancel']);
-    $wpdb->query("UPDATE `".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME."` SET who_cancelled='".esc_sql($current_user->ID)."',is_cancelled='1',cancelled_reason='".esc_sql($_GET["reason"])."' WHERE id=".intval($cancelc));
-    $message = "Item cancelled";
-    // send email to customer         
-    $item = $wpdb->get_row("SELECT * FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." WHERE id=".intval($cancelc)); 
-    
-    $app_source = $wpdb->get_row("SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($item->reference)); 
-    $params = unserialize($app_source->buffered_date);
-    if ('html' == cpabc_get_option('cncustomer_emailformat')) $content_type = "Content-Type: text/html; charset=utf-8\n"; else $content_type = "Content-Type: text/plain; charset=utf-8\n";
-    $email_content = str_replace('%INFORMATION%',str_replace('<br />',"\n",$item->description_customer), cpabc_get_option('cemail_notification_to_customer') );   
+    $wpdb->query( $wpdb->prepare( 'DELETE FROM `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '` WHERE id=%d', intval( $_GET['ld'] ) ) );
+    $message = __( 'Item deleted', 'appointment-booking-calendar' );
+} elseif ( isset( $_GET['del'] ) && $_GET['del'] === 'all' ) {
+    cpabc_bklist_verify_nonce();
+    $wpdb->query( $wpdb->prepare( 'DELETE FROM `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '` WHERE appointment_calendar_id=%d', CP_CALENDAR_ID ) );
+    $message = __( 'All items deleted', 'appointment-booking-calendar' );
+} elseif ( isset( $_GET['paid'] ) && intval( $_GET['paid'] ) ) {
+    cpabc_bklist_verify_nonce();
+    $item        = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' WHERE id=' . intval( $_GET['paid'] ) );
+    $itemdetails = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_TABLE_NAME . ' WHERE id=' . intval( $item->reference ) );
+    $data        = unserialize( $itemdetails->buffered_date );
+    if ( intval( $_GET['paidac'] ) ) {
+        $data['payment_type'] = 'Manually updated';
+    } else {
+        unset( $data['payment_type'] );
+        unset( $data['txnid'] );
+    }
+    do_action( 'cpabc_update_paid_status', intval( $item->reference ), ( intval( $_GET['paidac'] ) ? true : false ) );
+    $wpdb->query( 'UPDATE ' . CPABC_APPOINTMENTS_TABLE_NAME . " SET buffered_date='" . esc_sql( serialize( $data ) ) . "' WHERE id=" . intval( $item->reference ) );
+    $message = __( 'Paid status updated.', 'appointment-booking-calendar' );
+} elseif ( isset( $_GET['cancel'] ) && $_GET['cancel'] !== '' ) {
+    cpabc_bklist_verify_nonce();
+    $cancelc = intval( $_GET['cancel'] );
+    $wpdb->query( 'UPDATE `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . "` SET who_cancelled='" . esc_sql( $current_user->ID ) . "',is_cancelled='1',cancelled_reason='" . esc_sql( sanitize_text_field( wp_unslash( $_GET['reason'] ) ) ) . "' WHERE id=" . intval( $cancelc ) );
+    $message = __( 'Item cancelled', 'appointment-booking-calendar' );
+
+    $item       = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' WHERE id=' . intval( $cancelc ) );
+    $app_source = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_TABLE_NAME . ' WHERE id=' . intval( $item->reference ) );
+    $params     = unserialize( $app_source->buffered_date );
+    if ( 'html' === cpabc_get_option( 'cncustomer_emailformat' ) ) {
+        $content_type = "Content-Type: text/html; charset=utf-8\n";
+    } else {
+        $content_type = "Content-Type: text/plain; charset=utf-8\n";
+    }
+    $email_content        = str_replace( '%INFORMATION%', str_replace( '<br />', "\n", $item->description_customer ), cpabc_get_option( 'cemail_notification_to_customer' ) );
     $params['ITEMNUMBER'] = $cancelc;
-    foreach ($params as $itemr => $value)
-    {
-        $email_content = str_replace('<%'.$itemr.'%>',(is_array($value)?(implode(", ",$value)):($value)),$email_content);
-        $email_content = str_replace('%'.$itemr.'%',(is_array($value)?(implode(", ",$value)):($value)),$email_content);
+    foreach ( $params as $itemr => $value ) {
+        $email_content = str_replace( '<%' . $itemr . '%>', ( is_array( $value ) ? ( implode( ', ', $value ) ) : ( $value ) ), $email_content );
+        $email_content = str_replace( '%' . $itemr . '%', ( is_array( $value ) ? ( implode( ', ', $value ) ) : ( $value ) ), $email_content );
     }
-    $email_content = str_replace("%CALENDAR%", cpabc_get_option('uname'), $email_content);
-    $email_content = str_replace("%cancelreason%", sanitize_text_field($_GET["reason"]), $email_content);
-    
-    //wp_mail($item->title, cpabc_get_option('cemail_subject_notification_to_customer'), $email_content,
-    //        "From: \"".cpabc_get_option('notification_from_email')."\" <".cpabc_get_option('notification_from_email').">\r\n".
-    //        $content_type.
-    //        "X-Mailer: PHP/" . phpversion());    
-}
-else if (isset($_GET['nocancel']) && $_GET['nocancel'] != '')
-{    
+    $email_content = str_replace( '%CALENDAR%', cpabc_get_option( 'uname' ), $email_content );
+    $email_content = str_replace( '%cancelreason%', sanitize_text_field( wp_unslash( $_GET['reason'] ) ), $email_content );
+} elseif ( isset( $_GET['nocancel'] ) && $_GET['nocancel'] !== '' ) {
     cpabc_bklist_verify_nonce();
-    $wpdb->query("UPDATE `".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME."` SET who_edited='".esc_sql($current_user->ID)."',is_cancelled='0' WHERE id=".intval($_GET['nocancel']));           
-    $message = "Item un-cancelled";
-}
-else if (isset($_GET['resend']) && $_GET['resend'] != '')
-{    
+    $wpdb->query( 'UPDATE `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . "` SET who_edited='" . esc_sql( $current_user->ID ) . "',is_cancelled='0' WHERE id=" . intval( $_GET['nocancel'] ) );
+    $message = __( 'Item un-cancelled', 'appointment-booking-calendar' );
+} elseif ( isset( $_GET['resend'] ) && $_GET['resend'] !== '' ) {
     cpabc_bklist_verify_nonce();
-    $events = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." WHERE id=".intval($_GET['resend']) );
-    $events = $wpdb->get_results( "SELECT * FROM ".CPABC_APPOINTMENTS_TABLE_NAME." WHERE id=".intval($events[0]->reference) );    
-    define('CPABC_IS_RESEND', true);
-    cpabc_process_ready_to_go_appointment($events[0]->id,'',true);
-    $message = "Item re-sent";
+    $events = $wpdb->get_results( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' WHERE id=' . intval( $_GET['resend'] ) );
+    $events = $wpdb->get_results( 'SELECT * FROM ' . CPABC_APPOINTMENTS_TABLE_NAME . ' WHERE id=' . intval( $events[0]->reference ) );
+    define( 'CPABC_IS_RESEND', true );
+    cpabc_process_ready_to_go_appointment( $events[0]->id, '', true );
+    $message = __( 'Item re-sent', 'appointment-booking-calendar' );
+} elseif ( ! empty( $_GET['message'] ) ) {
+    $message = sanitize_text_field( wp_unslash( $_GET['message'] ) );
 }
 
+$mycalendarrows = $wpdb->get_results( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CONFIG_TABLE_NAME . ' WHERE `' . CPABC_TDEAPP_CONFIG_ID . '`=' . intval( CP_CALENDAR_ID ) );
+$calendar_name  = ( isset( $mycalendarrows[0] ) && ! empty( $mycalendarrows[0]->uname ) ) ? $mycalendarrows[0]->uname : '';
 
-
-$mycalendarrows = $wpdb->get_results( 'SELECT * FROM '.CPABC_APPOINTMENTS_CONFIG_TABLE_NAME .' WHERE `'.CPABC_TDEAPP_CONFIG_ID.'`='.CP_CALENDAR_ID);
-
-if ( 'POST' == $_SERVER['REQUEST_METHOD'] && isset( $_POST['cpabc_appointments_post_options'] ) )
-    echo "<div id='setting-error-settings_updated' class='updated settings-error'> <p><strong>Settings saved.</strong></p></div>";
-
-$current_user = wp_get_current_user();
-
-if ( cpabc_appointment_is_administrator() || ( isset( $mycalendarrows[0] ) && $mycalendarrows[0]->conwer == $current_user->ID ) ) {
-
-$current_page = intval(cpabc_get_get_param("p"));
-if (!$current_page) $current_page = 1;
-
-$cond = '';
-if (cpabc_get_get_param("search") != '') 
-{
-    $search_text = sanitize_text_field($_GET["search"]);
-    $cond .= " AND (title like '%".esc_sql($search_text)."%' OR description LIKE '%".esc_sql($search_text)."%')";
-}
-if (cpabc_get_get_param("dfrom") != '') $cond .= " AND (datatime >= '".esc_sql(sanitize_text_field($_GET["dfrom"]))."')";
-if (cpabc_get_get_param("dto") != '') $cond .= " AND (datatime <= '".esc_sql(sanitize_text_field($_GET["dto"]))." 23:59:59')";
-
-
-if (!empty($_GET["added_by"]) && $_GET["added_by"] != '') $cond .= " AND (who_added >= '".esc_sql(sanitize_text_field($_GET["added_by"]))."')";
-if (!empty($_GET["edited_by"]) && $_GET["edited_by"] != '') $cond .= " AND (who_edited >= '".esc_sql(sanitize_text_field($_GET["edited_by"]))."')";
-if (!empty($_GET["cancelled_by"]) && $_GET["cancelled_by"] != '') $cond .= " AND (is_cancelled='1' AND who_cancelled >= '".esc_sql(sanitize_text_field($_GET["cancelled_by"]))."')";
-if (!empty($_GET["cstatus"]) && $_GET["cstatus"] == 'cancelled') $cond .= " AND (is_cancelled='1')";
-if (!empty($_GET["cstatus"]) && $_GET["cstatus"] == 'approved') $cond .= " AND (is_cancelled<>'1')";
-
-
-$orderby = empty($_GET["orderby"]) ? 'datatime DESC' : sanitize_text_field($_GET["orderby"]);
-if ($orderby != 'id DESC' && $orderby != 'id ASC' && $orderby != 'datatime DESC' && $orderby != 'datatime ASC')
-	$orderby = 'datatime DESC';
-
-$orderby_parts = explode( ' ', $orderby );
-$orderby_column = ( 'id' === $orderby_parts[0] ) ? CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.id' : CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.datatime';
-$orderby_direction = ( isset( $orderby_parts[1] ) && 'ASC' === $orderby_parts[1] ) ? 'ASC' : 'DESC';
-$events = $wpdb->get_results( "SELECT ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME.".*,".CPABC_APPOINTMENTS_TABLE_NAME.".buffered_date,".CPABC_APPOINTMENTS_TABLE_NAME.".time FROM ".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME." LEFT JOIN  ".CPABC_APPOINTMENTS_TABLE_NAME." ON  ".CPABC_APPOINTMENTS_TABLE_NAME.".id=".CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME.".reference WHERE appointment_calendar_id=".intval(CP_CALENDAR_ID).$cond." ORDER BY ".$orderby_column." ".$orderby_direction );
-$total_items = count( $events );
-$total_pages = (int) ceil( $total_items / $records_per_page );
-if ( $total_pages > 0 && $current_page > $total_pages ) {
-    $current_page = $total_pages;
+if ( 'POST' === $_SERVER['REQUEST_METHOD'] && isset( $_POST['cpabc_appointments_post_options'] ) ) {
+    $message = __( 'Settings saved.', 'appointment-booking-calendar' );
 }
 
-$users_arr = array();
-$users_arr['id-1'] = 'CUSTOMER';
-$users = $wpdb->get_results( "SELECT user_login,ID FROM ".$wpdb->users." ORDER BY ID DESC" );                                                                     
-foreach ($users as $user)
-    $users_arr["id".$user->ID] = $user;
-	
-if ($message) echo "<div id='setting-error-settings_updated' class='updated settings-error'><p><strong>".esc_html($message)."</strong></p></div>";
+if ( cpabc_appointment_is_administrator() || ( isset( $mycalendarrows[0] ) && (int) $mycalendarrows[0]->conwer === (int) $current_user->ID ) ) {
 
-$nonce_un = wp_create_nonce( 'uname_abc_bklist' );
+    $current_page = intval( cpabc_get_get_param( 'p' ) );
+    if ( ! $current_page ) {
+        $current_page = 1;
+    }
 
-$pagination_args = array(
-    'page'         => 'cpabc_appointments.php',
-    'cal'          => CP_CALENDAR_ID,
-    'list'         => 1,
-    'dfrom'        => sanitize_text_field( cpabc_get_get_param( 'dfrom' ) ),
-    'dto'          => sanitize_text_field( cpabc_get_get_param( 'dto' ) ),
-    'search'       => sanitize_text_field( cpabc_get_get_param( 'search' ) ),
-    'added_by'     => sanitize_text_field( cpabc_get_get_param( 'added_by' ) ),
-    'edited_by'    => sanitize_text_field( cpabc_get_get_param( 'edited_by' ) ),
-    'cancelled_by' => sanitize_text_field( cpabc_get_get_param( 'cancelled_by' ) ),
-    'cstatus'      => sanitize_text_field( cpabc_get_get_param( 'cstatus' ) ),
-    'orderby'      => $orderby,
-);
-$base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
+    $cond = '';
+    if ( cpabc_get_get_param( 'search' ) !== '' ) {
+        $search_text = sanitize_text_field( wp_unslash( $_GET['search'] ) );
+        $cond       .= " AND (title LIKE '%" . esc_sql( $search_text ) . "%' OR description LIKE '%" . esc_sql( $search_text ) . "%')";
+    }
+    if ( cpabc_get_get_param( 'dfrom' ) !== '' ) {
+        $cond .= " AND (datatime >= '" . esc_sql( sanitize_text_field( wp_unslash( $_GET['dfrom'] ) ) ) . "')";
+    }
+    if ( cpabc_get_get_param( 'dto' ) !== '' ) {
+        $cond .= " AND (datatime <= '" . esc_sql( sanitize_text_field( wp_unslash( $_GET['dto'] ) ) ) . " 23:59:59')";
+    }
 
-?>
+    if ( ! empty( $_GET['added_by'] ) ) {
+        $cond .= " AND (who_added >= '" . esc_sql( sanitize_text_field( wp_unslash( $_GET['added_by'] ) ) ) . "')";
+    }
+    if ( ! empty( $_GET['edited_by'] ) ) {
+        $cond .= " AND (who_edited >= '" . esc_sql( sanitize_text_field( wp_unslash( $_GET['edited_by'] ) ) ) . "')";
+    }
+    if ( ! empty( $_GET['cancelled_by'] ) ) {
+        $cond .= " AND (is_cancelled='1' AND who_cancelled >= '" . esc_sql( sanitize_text_field( wp_unslash( $_GET['cancelled_by'] ) ) ) . "')";
+    }
+    if ( ! empty( $_GET['cstatus'] ) && $_GET['cstatus'] === 'cancelled' ) {
+        $cond .= " AND (is_cancelled='1')";
+    }
+    if ( ! empty( $_GET['cstatus'] ) && $_GET['cstatus'] === 'approved' ) {
+        $cond .= " AND (is_cancelled<>'1')";
+    }
+
+    $orderby = empty( $_GET['orderby'] ) ? 'datatime DESC' : sanitize_text_field( wp_unslash( $_GET['orderby'] ) );
+    if ( 'id DESC' !== $orderby && 'id ASC' !== $orderby && 'datatime DESC' !== $orderby && 'datatime ASC' !== $orderby ) {
+        $orderby = 'datatime DESC';
+    }
+
+    $orderby_parts     = explode( ' ', $orderby );
+    $orderby_column    = ( 'id' === $orderby_parts[0] ) ? CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.id' : CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.datatime';
+    $orderby_direction = ( isset( $orderby_parts[1] ) && 'ASC' === $orderby_parts[1] ) ? 'ASC' : 'DESC';
+
+    $events      = $wpdb->get_results( 'SELECT ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.*,' . CPABC_APPOINTMENTS_TABLE_NAME . '.buffered_date,' . CPABC_APPOINTMENTS_TABLE_NAME . '.time FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' LEFT JOIN ' . CPABC_APPOINTMENTS_TABLE_NAME . ' ON ' . CPABC_APPOINTMENTS_TABLE_NAME . '.id=' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . '.reference WHERE appointment_calendar_id=' . intval( CP_CALENDAR_ID ) . $cond . ' ORDER BY ' . $orderby_column . ' ' . $orderby_direction );
+    $total_items = count( $events );
+    $total_pages = (int) ceil( $total_items / $records_per_page );
+    if ( $total_pages > 0 && $current_page > $total_pages ) {
+        $current_page = $total_pages;
+    }
+
+    $users_arr         = array();
+    $users_arr['id-1'] = 'CUSTOMER';
+    $users             = $wpdb->get_results( 'SELECT user_login,ID FROM ' . $wpdb->users . ' ORDER BY ID DESC' );
+    foreach ( $users as $user ) {
+        $users_arr[ 'id' . $user->ID ] = $user;
+    }
+
+    $nonce_un = wp_create_nonce( 'uname_abc_bklist' );
+
+    $pagination_args = array(
+        'page'         => 'cpabc_appointments.php',
+        'cal'          => CP_CALENDAR_ID,
+        'list'         => 1,
+        'dfrom'        => sanitize_text_field( cpabc_get_get_param( 'dfrom' ) ),
+        'dto'          => sanitize_text_field( cpabc_get_get_param( 'dto' ) ),
+        'search'       => sanitize_text_field( cpabc_get_get_param( 'search' ) ),
+        'added_by'     => sanitize_text_field( cpabc_get_get_param( 'added_by' ) ),
+        'edited_by'    => sanitize_text_field( cpabc_get_get_param( 'edited_by' ) ),
+        'cancelled_by' => sanitize_text_field( cpabc_get_get_param( 'cancelled_by' ) ),
+        'cstatus'      => sanitize_text_field( cpabc_get_get_param( 'cstatus' ) ),
+        'orderby'      => $orderby,
+    );
+    $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
+    ?>
 <script type="text/javascript">
     function cp_deleteMessageItem(id) {
         if (confirm('<?php echo esc_js( __( 'Are you sure that you want to delete this item?', 'appointment-booking-calendar' ) ); ?>')) {
@@ -268,7 +262,6 @@ $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
     $j(function() {
         $j('#dfrom, #dto').datepicker({ dateFormat: 'yy-mm-dd' });
 
-        // Also collapse descriptions that wrap beyond 15 visual lines without explicit line breaks.
         $j('.cpabc-desc-content').each(function() {
             var lineHeight = parseFloat($j(this).css('line-height')) || 18.2;
             if (!$j(this).hasClass('cpabc-desc-collapsed') && this.scrollHeight > Math.ceil(lineHeight * 15.5)) {
@@ -281,6 +274,117 @@ $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
 </script>
 
 <style>
+    .cpabc-admin-wrap {
+        max-width: 1360px;
+        margin-top: 20px;
+    }
+    .cpabc-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .cpabc-header h1 {
+        margin: 0;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 23px;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+    .cpabc-header h1 .dashicons {
+        font-size: 26px;
+        width: 26px;
+        height: 26px;
+        color: #2271b1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cpabc-cal-pill {
+        font-size: 13px;
+        font-weight: 600;
+        background: #f0f6fc;
+        color: #2271b1;
+        border: 1px solid #c5d9ed;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+    .cpabc-header-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .wp-core-ui .button.cpabc-btn-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px;
+        min-height: 32px;
+        padding: 0 12px;
+        line-height: 1 !important;
+        white-space: nowrap;
+        margin: 0 !important;
+    }
+    .wp-core-ui .button.cpabc-btn-icon .dashicons {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        line-height: 1 !important;
+        margin: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    .cpabc-card {
+        background: #fff;
+        border: 1px solid #c3c4c7;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .cpabc-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 18px;
+        border-bottom: 1px solid #dcdcde;
+        background: #f6f7f7;
+    }
+    .cpabc-card-header h2 {
+        margin: 0;
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #1d2327;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .cpabc-card-header h2 .dashicons {
+        color: #50575e;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+    .cpabc-card-body {
+        padding: 16px 18px;
+    }
+    .cpabc-card-body.no-padding {
+        padding: 0;
+    }
+    .cpabc-orders-list {
+        border: none !important;
+        margin: 0 !important;
+    }
     .cpabc-orders-list tr.cpabc_cancelled td,
     .cpabc-orders-list tr.cpabc_cancelled th {
         color: #d63638 !important;
@@ -322,21 +426,21 @@ $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
     .cpabc-filter-bar {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 8px;
         align-items: center;
     }
-    .cpabc-filter-bar input[type="search"] { min-width: 180px; }
-    .cpabc-filter-bar input[type="text"] { max-width: 150px; }
+    .cpabc-filter-bar input[type="search"] { min-width: 190px; height: 32px; }
+    .cpabc-filter-bar input[type="text"] { max-width: 135px; height: 32px; }
+    .cpabc-filter-bar select { height: 32px; }
     .ahb-wp-pagination {
         display: flex;
         flex-wrap: wrap;
         justify-content: flex-end;
         align-items: center;
-        margin-top: 3px;
         color: #3c434a;
         font-size: 13px;
     }
-    .ahb-wp-pagination .displaying-num { margin-right: 7px; }
+    .ahb-wp-pagination .displaying-num { margin-right: 7px; font-weight: 500; }
     .ahb-wp-pagination .pagination-links { display: flex; align-items: center; }
     .ahb-wp-pagination .pagination-links .button {
         margin: 0 2px;
@@ -349,7 +453,7 @@ $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
         box-sizing: border-box;
         border: 1px solid #8c8f94;
         border-radius: 3px;
-        background: #f6f7f7;
+        background: #fff;
         color: #2271b1;
         text-decoration: none;
         font-weight: normal;
@@ -391,255 +495,321 @@ $base_url = add_query_arg( $pagination_args, admin_url( 'admin.php' ) );
     .abcsubdate { color: #646970; }
     .cpabc-orders-list .row-actions { margin-top: 2px; }
     .cpabc-orders-list td { overflow-wrap: anywhere; }
+    .cpabc-bottom-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px 18px;
+        background: #f6f7f7;
+        border-top: 1px solid #dcdcde;
+    }
+    .cpabc-bottom-actions-right {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .wp-core-ui .button.cpabc-btn-danger {
+        color: #d63638 !important;
+        border-color: #d63638 !important;
+        background: #fff !important;
+    }
+    .wp-core-ui .button.cpabc-btn-danger:hover {
+        background: #fcf0f1 !important;
+        color: #b32d2e !important;
+        border-color: #b32d2e !important;
+    }
     @media screen and (max-width: 782px) {
         .cpabc-filter-bar { align-items: stretch; }
         .cpabc-filter-bar select,
         .cpabc-filter-bar input[type="search"],
         .cpabc-filter-bar input[type="text"] { max-width: none; width: 100%; }
-        .ahb-wp-pagination { justify-content: flex-start; margin-bottom: 10px; }
+        .ahb-wp-pagination { justify-content: flex-start; }
     }
 </style>
 
-<div class="wrap">
-    <h1 class="wp-heading-inline">
-        <?php esc_html_e( 'Appointment Booking Calendar - Bookings List', 'appointment-booking-calendar' ); ?>
-        <?php if ( isset( $mycalendarrows[0] ) ) : ?> - <?php echo esc_html( $mycalendarrows[0]->uname ); ?><?php endif; ?>
-    </h1>
-    <a href="<?php echo esc_url( admin_url( 'admin.php?page=cpabc_appointments.php' ) ); ?>" class="page-title-action">&larr; <?php esc_html_e( 'Back to items list', 'appointment-booking-calendar' ); ?></a>
-    <hr class="wp-header-end">
+<div class="wrap cpabc-admin-wrap">
 
-    <?php if ( isset( $mycalendarrows[0] ) ) : ?>
-        <p class="description" style="margin:8px 0 14px;">
-            <?php esc_html_e( 'This booking list applies only to:', 'appointment-booking-calendar' ); ?>
-            <strong><?php echo esc_html( $mycalendarrows[0]->uname ); ?></strong>
-        </p>
+    <div class="cpabc-header">
+        <h1>
+            <span class="dashicons dashicons-clipboard"></span>
+            <?php esc_html_e( 'Bookings List', 'appointment-booking-calendar' ); ?>
+            <?php if ( $calendar_name !== '' ) : ?>
+                <span class="cpabc-cal-pill"><?php echo esc_html( $calendar_name ); ?> (#<?php echo intval( CP_CALENDAR_ID ); ?>)</span>
+            <?php endif; ?>
+        </h1>
+
+        <div class="cpabc-header-actions">
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( CP_CALENDAR_ID ) . '&addbk=1' ) ); ?>" class="button button-primary cpabc-btn-icon">
+                <span class="dashicons dashicons-plus-alt2"></span>
+                <span><?php esc_html_e( 'Add Booking', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( CP_CALENDAR_ID ) . '&calschedule=1' ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-calendar"></span>
+                <span><?php esc_html_e( 'Schedule', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug . '&cal=' . intval( CP_CALENDAR_ID ) ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-admin-generic"></span>
+                <span><?php esc_html_e( 'Settings', 'appointment-booking-calendar' ); ?></span>
+            </a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $plugslug ) ); ?>" class="button button-secondary cpabc-btn-icon">
+                <span class="dashicons dashicons-arrow-left-alt2"></span>
+                <span><?php esc_html_e( 'Return to the calendars list', 'appointment-booking-calendar' ); ?></span>
+            </a>
+        </div>
+    </div>
+
+    <?php if ( $message ) : ?>
+        <div id="setting-error-settings_updated" class="notice notice-success is-dismissible">
+            <p><strong><?php echo esc_html( $message ); ?></strong></p>
+        </div>
     <?php endif; ?>
 
-    <form action="admin.php" method="get" style="margin-bottom:10px;">
-        <input type="hidden" name="rsave" value="<?php echo esc_attr( $nonce_un ); ?>" />
-        <input type="hidden" name="page" value="cpabc_appointments.php" />
-        <input type="hidden" name="cal" value="<?php echo intval( CP_CALENDAR_ID ); ?>" />
-        <input type="hidden" name="list" value="1" />
+    <!-- Search & Filter Card -->
+    <div class="cpabc-card">
+        <div class="cpabc-card-body">
+            <form action="admin.php" method="get" style="margin:0;">
+                <input type="hidden" name="rsave" value="<?php echo esc_attr( $nonce_un ); ?>" />
+                <input type="hidden" name="page" value="cpabc_appointments.php" />
+                <input type="hidden" name="cal" value="<?php echo intval( CP_CALENDAR_ID ); ?>" />
+                <input type="hidden" name="list" value="1" />
 
-        <div class="alignleft actions cpabc-filter-bar">
-            <input autocomplete="off" type="search" name="search" placeholder="<?php esc_attr_e( 'Search for...', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'search' ) ); ?>" />
-            <input autocomplete="off" type="text" id="dfrom" name="dfrom" placeholder="<?php esc_attr_e( 'From', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'dfrom' ) ); ?>" size="10" />
-            <input autocomplete="off" type="text" id="dto" name="dto" placeholder="<?php esc_attr_e( 'To', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'dto' ) ); ?>" size="10" />
+                <div class="cpabc-filter-bar">
+                    <input autocomplete="off" type="search" name="search" placeholder="<?php esc_attr_e( 'Search for...', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'search' ) ); ?>" />
+                    <input autocomplete="off" type="text" id="dfrom" name="dfrom" placeholder="<?php esc_attr_e( 'From (YYYY-MM-DD)', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'dfrom' ) ); ?>" size="10" />
+                    <input autocomplete="off" type="text" id="dto" name="dto" placeholder="<?php esc_attr_e( 'To (YYYY-MM-DD)', 'appointment-booking-calendar' ); ?>" value="<?php echo esc_attr( cpabc_get_get_param( 'dto' ) ); ?>" size="10" />
 
-            <?php if ( cpabc_appointment_is_administrator() ) : ?>
-                <select name="added_by" aria-label="<?php esc_attr_e( 'Added by', 'appointment-booking-calendar' ); ?>">
-                    <option value=""><?php esc_html_e( 'Added by: all', 'appointment-booking-calendar' ); ?></option>
-                    <?php foreach ( $users as $user ) : ?>
-                        <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'added_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select name="edited_by" aria-label="<?php esc_attr_e( 'Edited by', 'appointment-booking-calendar' ); ?>">
-                    <option value=""><?php esc_html_e( 'Edited by: all', 'appointment-booking-calendar' ); ?></option>
-                    <?php foreach ( $users as $user ) : ?>
-                        <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'edited_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select name="cancelled_by" aria-label="<?php esc_attr_e( 'Cancelled by', 'appointment-booking-calendar' ); ?>">
-                    <option value=""><?php esc_html_e( 'Cancelled by: all', 'appointment-booking-calendar' ); ?></option>
-                    <?php foreach ( $users as $user ) : ?>
-                        <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'cancelled_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <select name="cstatus" aria-label="<?php esc_attr_e( 'Booking status', 'appointment-booking-calendar' ); ?>">
-                    <option value=""><?php esc_html_e( 'Status: all', 'appointment-booking-calendar' ); ?></option>
-                    <option value="approved" <?php selected( cpabc_get_get_param( 'cstatus' ), 'approved' ); ?>><?php esc_html_e( 'Active', 'appointment-booking-calendar' ); ?></option>
-                    <option value="cancelled" <?php selected( cpabc_get_get_param( 'cstatus' ), 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'appointment-booking-calendar' ); ?></option>
-                </select>
-            <?php endif; ?>
-
-            <select name="orderby" aria-label="<?php esc_attr_e( 'Sort bookings', 'appointment-booking-calendar' ); ?>">
-                <option value="id DESC" <?php selected( $orderby, 'id DESC' ); ?>><?php esc_html_e( 'Submission time - desc', 'appointment-booking-calendar' ); ?></option>
-                <option value="id ASC" <?php selected( $orderby, 'id ASC' ); ?>><?php esc_html_e( 'Submission time - asc', 'appointment-booking-calendar' ); ?></option>
-                <option value="datatime DESC" <?php selected( $orderby, 'datatime DESC' ); ?>><?php esc_html_e( 'Appointment time - desc', 'appointment-booking-calendar' ); ?></option>
-                <option value="datatime ASC" <?php selected( $orderby, 'datatime ASC' ); ?>><?php esc_html_e( 'Appointment time - asc', 'appointment-booking-calendar' ); ?></option>
-            </select>
-            <input type="submit" name="ds" value="<?php esc_attr_e( 'Filter', 'appointment-booking-calendar' ); ?>" class="button" />
-            <input type="submit" name="cpabc_appointments_csv" value="<?php esc_attr_e( 'Export to CSV', 'appointment-booking-calendar' ); ?>" class="button" />
-        </div>
-    </form>
-    <div class="clear"></div>
-
-    <div class="tablenav top" style="height:auto;padding:6px 0 10px;">
-        <div class="tablenav-pages ahb-wp-pagination<?php if ( $total_pages <= 1 ) echo ' one-page'; ?>">
-            <span class="displaying-num">
-                <?php echo esc_html( sprintf( _n( '%s item', '%s items', $total_items, 'appointment-booking-calendar' ), number_format_i18n( $total_items ) ) ); ?>
-            </span>
-            <?php if ( $total_pages > 0 ) : ?>
-                <span class="pagination-links">
-                    <?php if ( $current_page <= 1 ) : ?>
-                        <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>
-                        <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
-                    <?php else : ?>
-                        <a class="first-page button" href="<?php echo esc_url( add_query_arg( 'p', 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'First page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&laquo;</span></a>
-                        <a class="prev-page button" href="<?php echo esc_url( add_query_arg( 'p', $current_page - 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Previous page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&lsaquo;</span></a>
+                    <?php if ( cpabc_appointment_is_administrator() ) : ?>
+                        <select name="added_by" aria-label="<?php esc_attr_e( 'Added by', 'appointment-booking-calendar' ); ?>">
+                            <option value=""><?php esc_html_e( 'Added by: all', 'appointment-booking-calendar' ); ?></option>
+                            <?php foreach ( $users as $user ) : ?>
+                                <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'added_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="edited_by" aria-label="<?php esc_attr_e( 'Edited by', 'appointment-booking-calendar' ); ?>">
+                            <option value=""><?php esc_html_e( 'Edited by: all', 'appointment-booking-calendar' ); ?></option>
+                            <?php foreach ( $users as $user ) : ?>
+                                <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'edited_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="cancelled_by" aria-label="<?php esc_attr_e( 'Cancelled by', 'appointment-booking-calendar' ); ?>">
+                            <option value=""><?php esc_html_e( 'Cancelled by: all', 'appointment-booking-calendar' ); ?></option>
+                            <?php foreach ( $users as $user ) : ?>
+                                <option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( cpabc_get_get_param( 'cancelled_by' ), $user->ID ); ?>><?php echo esc_html( $user->user_login ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="cstatus" aria-label="<?php esc_attr_e( 'Booking status', 'appointment-booking-calendar' ); ?>">
+                            <option value=""><?php esc_html_e( 'Status: all', 'appointment-booking-calendar' ); ?></option>
+                            <option value="approved" <?php selected( cpabc_get_get_param( 'cstatus' ), 'approved' ); ?>><?php esc_html_e( 'Active', 'appointment-booking-calendar' ); ?></option>
+                            <option value="cancelled" <?php selected( cpabc_get_get_param( 'cstatus' ), 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'appointment-booking-calendar' ); ?></option>
+                        </select>
                     <?php endif; ?>
 
-                    <span class="paging-input">
-                        <label for="current-page-selector" class="screen-reader-text"><?php esc_html_e( 'Current Page', 'appointment-booking-calendar' ); ?></label>
-                        <input class="current-page" id="current-page-selector" type="text" value="<?php echo esc_attr( $current_page ); ?>" size="<?php echo esc_attr( strlen( (string) $total_pages ) ); ?>" aria-describedby="table-paging" onkeydown="if(event.keyCode===13){window.location.href='<?php echo esc_url_raw( $base_url ); ?>&p='+encodeURIComponent(this.value);return false;}" />
-                        <span class="tablenav-paging-text"> <?php esc_html_e( 'of', 'appointment-booking-calendar' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
-                    </span>
+                    <select name="orderby" aria-label="<?php esc_attr_e( 'Sort bookings', 'appointment-booking-calendar' ); ?>">
+                        <option value="id DESC" <?php selected( $orderby, 'id DESC' ); ?>><?php esc_html_e( 'Submission time - desc', 'appointment-booking-calendar' ); ?></option>
+                        <option value="id ASC" <?php selected( $orderby, 'id ASC' ); ?>><?php esc_html_e( 'Submission time - asc', 'appointment-booking-calendar' ); ?></option>
+                        <option value="datatime DESC" <?php selected( $orderby, 'datatime DESC' ); ?>><?php esc_html_e( 'Appointment time - desc', 'appointment-booking-calendar' ); ?></option>
+                        <option value="datatime ASC" <?php selected( $orderby, 'datatime ASC' ); ?>><?php esc_html_e( 'Appointment time - asc', 'appointment-booking-calendar' ); ?></option>
+                    </select>
 
-                    <?php if ( $current_page >= $total_pages ) : ?>
-                        <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
-                        <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>
-                    <?php else : ?>
-                        <a class="next-page button" href="<?php echo esc_url( add_query_arg( 'p', $current_page + 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Next page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&rsaquo;</span></a>
-                        <a class="last-page button" href="<?php echo esc_url( add_query_arg( 'p', $total_pages, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Last page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&raquo;</span></a>
-                    <?php endif; ?>
-                </span>
-            <?php endif; ?>
+                    <button type="submit" name="ds" value="<?php esc_attr_e( 'Filter', 'appointment-booking-calendar' ); ?>" class="button button-primary cpabc-btn-icon">
+                        <span class="dashicons dashicons-filter"></span>
+                        <span><?php esc_html_e( 'Filter', 'appointment-booking-calendar' ); ?></span>
+                    </button>
+                    <button type="submit" name="cpabc_appointments_csv" value="<?php esc_attr_e( 'Export to CSV', 'appointment-booking-calendar' ); ?>" class="button button-secondary cpabc-btn-icon">
+                        <span class="dashicons dashicons-download"></span>
+                        <span><?php esc_html_e( 'Export to CSV', 'appointment-booking-calendar' ); ?></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-    <div class="clear"></div>
 
-    <div id="cpabc_printable_contents">
-        <form name="dex_table_form" id="dex_table_form" action="admin.php" method="get">
-            <input type="hidden" name="page" value="cpabc_appointments.php" />
-            <input type="hidden" name="cal" value="<?php echo intval( CP_CALENDAR_ID ); ?>" />
-            <input type="hidden" name="list" value="1" />
-            <input type="hidden" name="rsave" value="<?php echo esc_attr( $nonce_un ); ?>" />
-            <input type="hidden" name="delmark" value="1" />
+    <!-- Bookings Table Card -->
+    <div class="cpabc-card">
+        <div class="cpabc-card-header">
+            <h2>
+                <span class="dashicons dashicons-list-view"></span>
+                <?php esc_html_e( 'Registered Bookings', 'appointment-booking-calendar' ); ?>
+            </h2>
 
-            <table class="wp-list-table widefat fixed striped cpabc-orders-list">
-                <thead>
-                    <tr>
-                        <td id="cb" class="manage-column column-cb check-column cpnopr">
-                            <input type="checkbox" name="cpcontrolck" id="cpcontrolck" value="" onclick="cp_markall();" />
-                        </td>
-                        <th scope="col" class="manage-column" style="width:65px;"><?php esc_html_e( 'ID#', 'appointment-booking-calendar' ); ?></th>
-                        <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
-                            <th scope="col" class="manage-column" style="width:125px;"><?php esc_html_e( 'Submission Time', 'appointment-booking-calendar' ); ?></th>
+            <div class="tablenav-pages ahb-wp-pagination<?php if ( $total_pages <= 1 ) echo ' one-page'; ?>">
+                <span class="displaying-num">
+                    <?php echo esc_html( sprintf( _n( '%s item', '%s items', $total_items, 'appointment-booking-calendar' ), number_format_i18n( $total_items ) ) ); ?>
+                </span>
+                <?php if ( $total_pages > 0 ) : ?>
+                    <span class="pagination-links">
+                        <?php if ( $current_page <= 1 ) : ?>
+                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&laquo;</span>
+                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&lsaquo;</span>
+                        <?php else : ?>
+                            <a class="first-page button" href="<?php echo esc_url( add_query_arg( 'p', 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'First page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&laquo;</span></a>
+                            <a class="prev-page button" href="<?php echo esc_url( add_query_arg( 'p', $current_page - 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Previous page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&lsaquo;</span></a>
                         <?php endif; ?>
-                        <th scope="col" class="manage-column" style="width:135px;"><?php esc_html_e( 'Date', 'appointment-booking-calendar' ); ?></th>
-                        <th scope="col" class="manage-column" style="width:160px;"><?php esc_html_e( 'Title', 'appointment-booking-calendar' ); ?></th>
-                        <th scope="col" class="manage-column"><?php esc_html_e( 'Description', 'appointment-booking-calendar' ); ?></th>
-                        <th scope="col" class="manage-column cpabc-col-compact" style="width:48px;" title="<?php esc_attr_e( 'Quantity', 'appointment-booking-calendar' ); ?>"><?php esc_html_e( 'Qty', 'appointment-booking-calendar' ); ?></th>
-                        <th scope="col" class="manage-column cpnopr" style="width:205px;"><?php esc_html_e( 'Options', 'appointment-booking-calendar' ); ?></th>
-                    </tr>
-                </thead>
-                <tbody id="the-list">
-                    <?php
-                    $offset = ( $current_page - 1 ) * $records_per_page;
-                    for ( $i = $offset; $i < min( $offset + $records_per_page, $total_items ); $i++ ) :
-                        $event = $events[ $i ];
-                        $is_cancelled = ( '1' === (string) $event->is_cancelled );
-                        $desc_raw = str_replace( array( "\r\n", "\r" ), "\n", (string) $event->description );
-                        $desc_lines = explode( "\n", $desc_raw );
-                        $is_long_desc = ( count( $desc_lines ) > 15 || strlen( $desc_raw ) > 900 );
-                        $params = maybe_unserialize( $event->buffered_date );
-                        $params = is_array( $params ) ? $params : array();
-                        $is_paid = ( array_key_exists( 'txnid', $params ) || ( isset( $params['payment_type'] ) && ( 'PayPal' !== $params['payment_type'] || isset( $params['txnid'] ) ) ) );
-                        ?>
-                        <tr class="<?php echo $is_cancelled ? 'cpabc_cancelled ' : ''; ?>author-self status-draft format-default iedit" valign="top">
-                            <th scope="row" class="check-column cpnopr">
-                                <input type="checkbox" name="c<?php echo intval( $i - $offset ); ?>" value="<?php echo intval( $event->id ); ?>" />
-                            </th>
-                            <td><?php echo esc_html( $event->reference ); ?></td>
-                            <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
-                                <td><?php echo isset( $event->time ) ? esc_html( date( $format, strtotime( $event->time ) ) ) : ''; ?></td>
-                            <?php endif; ?>
-                            <td><?php echo esc_html( substr( $event->datatime, 0, 16 ) ); ?></td>
-                            <td><?php echo esc_html( $event->title ); ?></td>
-                            <td>
-                                <div id="cpabc_desc_<?php echo intval( $event->id ); ?>" class="cpabc-desc-content<?php echo $is_long_desc ? ' cpabc-desc-collapsed' : ''; ?>">
-                                    <?php echo wp_kses_post( str_replace( "\n", '<br />', $desc_raw ) ); ?>
-                                </div>
-                                <?php if ( $is_long_desc ) : ?>
-                                    <a href="javascript:void(0);" class="cpabc-show-more-btn cpnopr" onclick="cp_toggleDesc(<?php echo intval( $event->id ); ?>, this); return false;"><?php esc_html_e( 'Show more', 'appointment-booking-calendar' ); ?></a>
-                                <?php endif; ?>
+
+                        <span class="paging-input">
+                            <label for="current-page-selector" class="screen-reader-text"><?php esc_html_e( 'Current Page', 'appointment-booking-calendar' ); ?></label>
+                            <input class="current-page" id="current-page-selector" type="text" value="<?php echo esc_attr( $current_page ); ?>" size="<?php echo esc_attr( strlen( (string) $total_pages ) ); ?>" aria-describedby="table-paging" onkeydown="if(event.keyCode===13){window.location.href='<?php echo esc_url_raw( $base_url ); ?>&p='+encodeURIComponent(this.value);return false;}" />
+                            <span class="tablenav-paging-text"> <?php esc_html_e( 'of', 'appointment-booking-calendar' ); ?> <span class="total-pages"><?php echo esc_html( number_format_i18n( $total_pages ) ); ?></span></span>
+                        </span>
+
+                        <?php if ( $current_page >= $total_pages ) : ?>
+                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&rsaquo;</span>
+                            <span class="tablenav-pages-navspan button disabled" aria-hidden="true">&raquo;</span>
+                        <?php else : ?>
+                            <a class="next-page button" href="<?php echo esc_url( add_query_arg( 'p', $current_page + 1, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Next page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&rsaquo;</span></a>
+                            <a class="last-page button" href="<?php echo esc_url( add_query_arg( 'p', $total_pages, $base_url ) ); ?>"><span class="screen-reader-text"><?php esc_html_e( 'Last page', 'appointment-booking-calendar' ); ?></span><span aria-hidden="true">&raquo;</span></a>
+                        <?php endif; ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="cpabc-card-body no-padding" id="cpabc_printable_contents">
+            <form name="dex_table_form" id="dex_table_form" action="admin.php" method="get">
+                <input type="hidden" name="page" value="cpabc_appointments.php" />
+                <input type="hidden" name="cal" value="<?php echo intval( CP_CALENDAR_ID ); ?>" />
+                <input type="hidden" name="list" value="1" />
+                <input type="hidden" name="rsave" value="<?php echo esc_attr( $nonce_un ); ?>" />
+                <input type="hidden" name="delmark" value="1" />
+
+                <table class="wp-list-table widefat fixed striped cpabc-orders-list">
+                    <thead>
+                        <tr>
+                            <td id="cb" class="manage-column column-cb check-column cpnopr">
+                                <input type="checkbox" name="cpcontrolck" id="cpcontrolck" value="" onclick="cp_markall();" />
                             </td>
-                            <td class="cpabc-col-compact"><?php echo esc_html( $event->quantity ); ?></td>
-                            <td class="cpnopr">
-                                <div class="row-actions visible">
-                                    <span class="edit"><a href="javascript:void(0);" onclick="cp_editItem(<?php echo intval( $event->id ); ?>, <?php echo intval( $event->appointment_calendar_id ); ?>); return false;"><?php esc_html_e( 'Edit', 'appointment-booking-calendar' ); ?></a> | </span>
-                                    <span class="inline">
-                                        <?php if ( $is_cancelled ) : ?>
-                                            <a href="javascript:void(0);" onclick="cp_uncancelItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Un-Cancel', 'appointment-booking-calendar' ); ?></a> |
-                                        <?php else : ?>
-                                            <a href="javascript:void(0);" onclick="cp_cancelItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Cancel', 'appointment-booking-calendar' ); ?></a> |
-                                        <?php endif; ?>
-                                    </span>
-                                    <span class="inline"><a href="javascript:void(0);" onclick="cp_resendItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Resend Email', 'appointment-booking-calendar' ); ?></a><?php if ( cpabc_appointment_is_administrator() ) : ?> | <?php endif; ?></span>
-                                    <?php if ( cpabc_appointment_is_administrator() ) : ?>
-                                        <span class="trash"><a href="javascript:void(0);" class="submitdelete" onclick="cp_deleteMessageItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Delete', 'appointment-booking-calendar' ); ?></a></span>
+                            <th scope="col" class="manage-column" style="width:65px;"><?php esc_html_e( 'ID#', 'appointment-booking-calendar' ); ?></th>
+                            <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
+                                <th scope="col" class="manage-column" style="width:125px;"><?php esc_html_e( 'Submission Time', 'appointment-booking-calendar' ); ?></th>
+                            <?php endif; ?>
+                            <th scope="col" class="manage-column" style="width:135px;"><?php esc_html_e( 'Date', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column" style="width:160px;"><?php esc_html_e( 'Title', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column"><?php esc_html_e( 'Description', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column cpabc-col-compact" style="width:48px;" title="<?php esc_attr_e( 'Quantity', 'appointment-booking-calendar' ); ?>"><?php esc_html_e( 'Qty', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column cpnopr" style="width:205px;"><?php esc_html_e( 'Options', 'appointment-booking-calendar' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="the-list">
+                        <?php
+                        $offset = ( $current_page - 1 ) * $records_per_page;
+                        for ( $i = $offset; $i < min( $offset + $records_per_page, $total_items ); $i++ ) :
+                            $event        = $events[ $i ];
+                            $is_cancelled = ( '1' === (string) $event->is_cancelled );
+                            $desc_raw     = str_replace( array( "\r\n", "\r" ), "\n", (string) $event->description );
+                            $desc_lines   = explode( "\n", $desc_raw );
+                            $is_long_desc = ( count( $desc_lines ) > 15 || strlen( $desc_raw ) > 900 );
+                            $params       = maybe_unserialize( $event->buffered_date );
+                            $params       = is_array( $params ) ? $params : array();
+                            $is_paid      = ( array_key_exists( 'txnid', $params ) || ( isset( $params['payment_type'] ) && ( 'PayPal' !== $params['payment_type'] || isset( $params['txnid'] ) ) ) );
+                            ?>
+                            <tr class="<?php echo $is_cancelled ? 'cpabc_cancelled ' : ''; ?>author-self status-draft format-default iedit" valign="top">
+                                <th scope="row" class="check-column cpnopr">
+                                    <input type="checkbox" name="c<?php echo intval( $i - $offset ); ?>" value="<?php echo intval( $event->id ); ?>" />
+                                </th>
+                                <td><?php echo esc_html( $event->reference ); ?></td>
+                                <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
+                                    <td><?php echo isset( $event->time ) ? esc_html( date( $format, strtotime( $event->time ) ) ) : ''; ?></td>
+                                <?php endif; ?>
+                                <td><?php echo esc_html( substr( $event->datatime, 0, 16 ) ); ?></td>
+                                <td><?php echo esc_html( $event->title ); ?></td>
+                                <td>
+                                    <div id="cpabc_desc_<?php echo intval( $event->id ); ?>" class="cpabc-desc-content<?php echo $is_long_desc ? ' cpabc-desc-collapsed' : ''; ?>">
+                                        <?php echo wp_kses_post( str_replace( "\n", '<br />', $desc_raw ) ); ?>
+                                    </div>
+                                    <?php if ( $is_long_desc ) : ?>
+                                        <a href="javascript:void(0);" class="cpabc-show-more-btn cpnopr" onclick="cp_toggleDesc(<?php echo intval( $event->id ); ?>, this); return false;"><?php esc_html_e( 'Show more', 'appointment-booking-calendar' ); ?></a>
                                     <?php endif; ?>
-                                </div>
-
-                                <div class="cpabc-booking-meta">
-                                    <?php if ( isset( $users_arr[ 'id' . $event->who_added ] ) && is_object( $users_arr[ 'id' . $event->who_added ] ) ) : ?>
-                                        <div><em><?php esc_html_e( 'Added by:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $users_arr[ 'id' . $event->who_added ]->user_login ); ?></strong></em></div>
-                                    <?php endif; ?>
-                                    <?php if ( isset( $users_arr[ 'id' . $event->who_edited ] ) && is_object( $users_arr[ 'id' . $event->who_edited ] ) ) : ?>
-                                        <div><em><?php esc_html_e( 'Edited by:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $users_arr[ 'id' . $event->who_edited ]->user_login ); ?></strong></em></div>
-                                    <?php endif; ?>
-                                    <?php if ( isset( $users_arr[ 'id' . $event->who_cancelled ] ) && $is_cancelled ) : ?>
-                                        <div><em><?php esc_html_e( 'Cancelled by:', 'appointment-booking-calendar' ); ?>
-                                            <strong><?php echo esc_html( is_object( $users_arr[ 'id' . $event->who_cancelled ] ) ? $users_arr[ 'id' . $event->who_cancelled ]->user_login : $users_arr[ 'id' . $event->who_cancelled ] ); ?></strong>
-                                        </em></div>
-                                    <?php endif; ?>
-                                    <?php if ( '' !== (string) $event->cancelled_reason && $is_cancelled ) : ?>
-                                        <div><em><?php esc_html_e( 'Cancelled reason:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $event->cancelled_reason ); ?></strong></em></div>
-                                    <?php endif; ?>
-                                    <?php if ( 'id DESC' !== $orderby && 'id ASC' !== $orderby ) : ?>
-                                        <div><em><?php esc_html_e( 'Submission date:', 'appointment-booking-calendar' ); ?> <strong><?php echo isset( $event->time ) ? esc_html( date( $format, strtotime( $event->time ) ) ) : ''; ?></strong></em></div>
-                                    <?php endif; ?>
-
-                                    <div class="cpabc-payment-meta">
-                                        <?php if ( $is_paid ) : ?>
-                                            <div class="abcpaid">
-                                                <?php esc_html_e( 'Paid.', 'appointment-booking-calendar' ); ?>
-                                                <?php if ( isset( $params['payment_type'] ) && ( 'PayPal' !== $params['payment_type'] || isset( $params['txnid'] ) ) ) : ?><?php echo esc_html( $params['payment_type'] ); ?>.<?php endif; ?>
-                                                <?php if ( isset( $params['txnid'] ) ) : ?><?php esc_html_e( 'Payment ID', 'appointment-booking-calendar' ); ?>: <?php echo esc_html( $params['txnid'] ? $params['txnid'] : '---' ); ?><?php endif; ?>
-                                            </div>
-                                            <p style="margin:5px 0 0;"><button type="button" class="button button-small" name="calpaide_<?php echo intval( $event->id ); ?>" onclick="cp_paidMessageItem(<?php echo intval( $event->id ); ?>, 0);"><?php esc_html_e( 'Mark as unpaid', 'appointment-booking-calendar' ); ?></button></p>
-                                        <?php else : ?>
-                                            <div class="abcunpaid"><?php esc_html_e( 'Payment: not confirmed so far', 'appointment-booking-calendar' ); ?></div>
-                                            <p style="margin:5px 0 0;"><button type="button" class="button button-small" name="calpaide_<?php echo intval( $event->id ); ?>" onclick="cp_paidMessageItem(<?php echo intval( $event->id ); ?>, 1); return false;"><?php esc_html_e( 'Mark as paid', 'appointment-booking-calendar' ); ?></button></p>
+                                </td>
+                                <td class="cpabc-col-compact"><?php echo esc_html( $event->quantity ); ?></td>
+                                <td class="cpnopr">
+                                    <div class="row-actions visible">
+                                        <span class="edit"><a href="javascript:void(0);" onclick="cp_editItem(<?php echo intval( $event->id ); ?>, <?php echo intval( $event->appointment_calendar_id ); ?>); return false;"><?php esc_html_e( 'Edit', 'appointment-booking-calendar' ); ?></a> | </span>
+                                        <span class="inline">
+                                            <?php if ( $is_cancelled ) : ?>
+                                                <a href="javascript:void(0);" onclick="cp_uncancelItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Un-Cancel', 'appointment-booking-calendar' ); ?></a> |
+                                            <?php else : ?>
+                                                <a href="javascript:void(0);" onclick="cp_cancelItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Cancel', 'appointment-booking-calendar' ); ?></a> |
+                                            <?php endif; ?>
+                                        </span>
+                                        <span class="inline"><a href="javascript:void(0);" onclick="cp_resendItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Resend Email', 'appointment-booking-calendar' ); ?></a><?php if ( cpabc_appointment_is_administrator() ) : ?> | <?php endif; ?></span>
+                                        <?php if ( cpabc_appointment_is_administrator() ) : ?>
+                                            <span class="trash"><a href="javascript:void(0);" class="submitdelete" onclick="cp_deleteMessageItem(<?php echo intval( $event->id ); ?>); return false;"><?php esc_html_e( 'Delete', 'appointment-booking-calendar' ); ?></a></span>
                                         <?php endif; ?>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endfor; ?>
-                    <?php if ( 0 === $total_items ) : ?>
-                        <tr><td colspan="<?php echo ( 'id DESC' === $orderby || 'id ASC' === $orderby ) ? 8 : 7; ?>"><?php esc_html_e( 'No bookings found.', 'appointment-booking-calendar' ); ?></td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </form>
+
+                                    <div class="cpabc-booking-meta">
+                                        <?php if ( isset( $users_arr[ 'id' . $event->who_added ] ) && is_object( $users_arr[ 'id' . $event->who_added ] ) ) : ?>
+                                            <div><em><?php esc_html_e( 'Added by:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $users_arr[ 'id' . $event->who_added ]->user_login ); ?></strong></em></div>
+                                        <?php endif; ?>
+                                        <?php if ( isset( $users_arr[ 'id' . $event->who_edited ] ) && is_object( $users_arr[ 'id' . $event->who_edited ] ) ) : ?>
+                                            <div><em><?php esc_html_e( 'Edited by:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $users_arr[ 'id' . $event->who_edited ]->user_login ); ?></strong></em></div>
+                                        <?php endif; ?>
+                                        <?php if ( isset( $users_arr[ 'id' . $event->who_cancelled ] ) && $is_cancelled ) : ?>
+                                            <div><em><?php esc_html_e( 'Cancelled by:', 'appointment-booking-calendar' ); ?>
+                                                <strong><?php echo esc_html( is_object( $users_arr[ 'id' . $event->who_cancelled ] ) ? $users_arr[ 'id' . $event->who_cancelled ]->user_login : $users_arr[ 'id' . $event->who_cancelled ] ); ?></strong>
+                                            </em></div>
+                                        <?php endif; ?>
+                                        <?php if ( '' !== (string) $event->cancelled_reason && $is_cancelled ) : ?>
+                                            <div><em><?php esc_html_e( 'Cancelled reason:', 'appointment-booking-calendar' ); ?> <strong><?php echo esc_html( $event->cancelled_reason ); ?></strong></em></div>
+                                        <?php endif; ?>
+                                        <?php if ( 'id DESC' !== $orderby && 'id ASC' !== $orderby ) : ?>
+                                            <div><em><?php esc_html_e( 'Submission date:', 'appointment-booking-calendar' ); ?> <strong><?php echo isset( $event->time ) ? esc_html( date( $format, strtotime( $event->time ) ) ) : ''; ?></strong></em></div>
+                                        <?php endif; ?>
+
+                                        <div class="cpabc-payment-meta">
+                                            <?php if ( $is_paid ) : ?>
+                                                <div class="abcpaid">
+                                                    <?php esc_html_e( 'Paid.', 'appointment-booking-calendar' ); ?>
+                                                    <?php if ( isset( $params['payment_type'] ) && ( 'PayPal' !== $params['payment_type'] || isset( $params['txnid'] ) ) ) : ?><?php echo esc_html( $params['payment_type'] ); ?>.<?php endif; ?>
+                                                    <?php if ( isset( $params['txnid'] ) ) : ?><?php esc_html_e( 'Payment ID', 'appointment-booking-calendar' ); ?>: <?php echo esc_html( $params['txnid'] ? $params['txnid'] : '---' ); ?><?php endif; ?>
+                                                </div>
+                                                <p style="margin:5px 0 0;"><button type="button" class="button button-small" name="calpaide_<?php echo intval( $event->id ); ?>" onclick="cp_paidMessageItem(<?php echo intval( $event->id ); ?>, 0);"><?php esc_html_e( 'Mark as unpaid', 'appointment-booking-calendar' ); ?></button></p>
+                                            <?php else : ?>
+                                                <div class="abcunpaid"><?php esc_html_e( 'Payment: not confirmed so far', 'appointment-booking-calendar' ); ?></div>
+                                                <p style="margin:5px 0 0;"><button type="button" class="button button-small" name="calpaide_<?php echo intval( $event->id ); ?>" onclick="cp_paidMessageItem(<?php echo intval( $event->id ); ?>, 1); return false;"><?php esc_html_e( 'Mark as paid', 'appointment-booking-calendar' ); ?></button></p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endfor; ?>
+                        <?php if ( 0 === $total_items ) : ?>
+                            <tr><td colspan="<?php echo ( 'id DESC' === $orderby || 'id ASC' === $orderby ) ? 8 : 7; ?>" style="padding: 18px; text-align: center; color: #646970;"><?php esc_html_e( 'No bookings found.', 'appointment-booking-calendar' ); ?></td></tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </form>
+        </div>
+
+        <div class="ahbnoprint cpabc-bottom-actions">
+            <div>
+                <button type="button" class="button button-secondary cpabc-btn-icon" name="pbutton" onclick="do_dexapp_deletemarked();">
+                    <span class="dashicons dashicons-trash"></span>
+                    <span><?php esc_html_e( 'Delete marked items', 'appointment-booking-calendar' ); ?></span>
+                </button>
+            </div>
+            <div class="cpabc-bottom-actions-right">
+                <button type="button" class="button button-secondary cpabc-btn-icon" name="pbutton" onclick="do_dexapp_print();">
+                    <span class="dashicons dashicons-printer"></span>
+                    <span><?php esc_html_e( 'Print List', 'appointment-booking-calendar' ); ?></span>
+                </button>
+                <button type="button" class="button cpabc-btn-icon cpabc-btn-danger" name="pbutton" onclick="do_dexapp_deleteall();">
+                    <span class="dashicons dashicons-warning"></span>
+                    <span><?php esc_html_e( 'Delete All Bookings', 'appointment-booking-calendar' ); ?></span>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="ahbnoprint tablenav bottom" style="margin-top:15px;">
-        <div class="alignleft actions">
-            <input class="button" type="button" name="pbutton" value="<?php esc_attr_e( 'Delete marked items', 'appointment-booking-calendar' ); ?>" onclick="do_dexapp_deletemarked();" />
-        </div>
-        <div class="alignright actions">
-            <input class="button" type="button" name="pbutton" value="<?php esc_attr_e( 'Print List', 'appointment-booking-calendar' ); ?>" onclick="do_dexapp_print();" style="margin-right:10px;" />
-            <input class="button button-link-delete" type="button" name="pbutton" value="<?php esc_attr_e( 'Delete All Bookings', 'appointment-booking-calendar' ); ?>" onclick="do_dexapp_deleteall();" />
-        </div>
-        <div class="clear"></div>
-    </div>
 </div>
 
 <?php } else { ?>
-  <br />
-  The current user logged in doesn't have enough permissions to edit this calendar. This user can edit only his/her own calendars. Please log in as administrator to get access to all calendars.
-
+    <div class="wrap cpabc-admin-wrap">
+        <div class="notice notice-error">
+            <p><?php esc_html_e( "The current user logged in doesn't have enough permissions to edit this calendar. This user can edit only his/her own calendars. Please log in as administrator to get access to all calendars.", 'appointment-booking-calendar' ); ?></p>
+        </div>
+    </div>
 <?php } ?>
-
-
-
-
-
-
-
-
-
-
-

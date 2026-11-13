@@ -5,7 +5,7 @@ Tags: appointment, booking, calendar, appointment calendar, booking calendar
 Requires at least: 5.0
 Requires PHP: 7.0
 Tested up to: 7.0
-Stable tag: 1.4.08
+Stable tag: 1.4.09
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -303,6 +303,9 @@ For more information about the commercial versions, visit: https://abc.dwbooster
 
 == Changelog ==
 
+= 1.4.09 =
+* Modernized schedule calendar view
+
 = 1.4.08 =
 * Modernized the Calendar List, Publish Wizard, and Add Booking administration interfaces.
 * Added Initial Status selection (Draft or Publish) and one-click shortcode/iCal copy buttons.
@@ -338,5 +341,5 @@ For more information about the commercial versions, visit: https://abc.dwbooster
 
 == Upgrade Notice ==
 
-= 1.4.08 =
-* Modernized administration interface, improved Publish Wizard, and enhanced booking form validation UX.
+= 1.4.09 =
+* Modernized schedule calendar view
