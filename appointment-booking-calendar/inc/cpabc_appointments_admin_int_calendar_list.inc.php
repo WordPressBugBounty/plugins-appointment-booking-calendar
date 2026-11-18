@@ -355,6 +355,12 @@ $nonce_un = wp_create_nonce( 'uname_abc' );
             <?php esc_html_e( 'Appointment Booking Calendar', 'appointment-booking-calendar' ); ?>
         </h1>
         <div class="cpabc-header-links">
+            <?php if ( cpabc_appointment_is_administrator() ) : ?>
+                <a href="admin.php?page=cpabc_appointments_ipn_logs" class="button button-secondary cpabc-btn-icon">
+                    <span class="dashicons dashicons-warning"></span>
+                    <?php esc_html_e( 'PayPal IPN Logs', 'appointment-booking-calendar' ); ?>
+                </a>
+            <?php endif; ?>
             <a href="https://abc.dwbooster.com/support?ref=callist" target="_blank" rel="noopener noreferrer" class="button button-secondary cpabc-btn-icon">
                 <span class="dashicons dashicons-book"></span>
                 <?php esc_html_e( 'Documentation', 'appointment-booking-calendar' ); ?>

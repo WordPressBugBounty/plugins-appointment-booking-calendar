@@ -650,7 +650,8 @@ function cpabc_customAdjustmentsLink($links) {
 }
 
 function cpabc_appointments_html_post_page() {
-    global $wpdb;
+    global $wpdb;      
+    
     if ((cpabc_get_get_param("cal") != '') || ( cpabc_get_get_param("cal") == '0' || cpabc_get_get_param("pwizard") == '1'))
     {
         $_GET["cal"] = intval(cpabc_get_get_param("cal"));
@@ -671,8 +672,11 @@ function cpabc_appointments_html_post_page() {
     }
     else
     {
-        if (isset($_GET["page"]) &&$_GET["page"] == 'cpabc_appointments_upgrade')
+        if ( isset( $_GET['page'] ) && $_GET['page'] == 'cpabc_appointments_ipn_logs' )
         {
+            @include_once dirname( __FILE__ ) . '/cpabc_appointments_admin_int_ipn_logs.inc.php';
+        }
+        else if (isset($_GET["page"]) && $_GET["page"] == 'cpabc_appointments_upgrade'){
             echo("Redirecting to upgrade page...<script type='text/javascript'>document.location='https://abc.dwbooster.com/download';</script>");
             exit;
         }
