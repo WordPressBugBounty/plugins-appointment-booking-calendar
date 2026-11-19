@@ -66,25 +66,43 @@ if ( isset( $_GET['delmark'] ) && $_GET['delmark'] !== '' ) {
 } elseif ( isset( $_GET['cancel'] ) && $_GET['cancel'] !== '' ) {
     cpabc_bklist_verify_nonce();
     $cancelc = intval( $_GET['cancel'] );
-    $wpdb->query( 'UPDATE `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . "` SET who_cancelled='" . esc_sql( $current_user->ID ) . "',is_cancelled='1',cancelled_reason='" . esc_sql( sanitize_text_field( wp_unslash( $_GET['reason'] ) ) ) . "' WHERE id=" . intval( $cancelc ) );
+    $reason  = isset( $_GET['reason'] ) ? sanitize_text_field( wp_unslash( $_GET['reason'] ) ) : '';
+
+    $wpdb->query( 'UPDATE `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . "` SET who_cancelled='" . esc_sql( $current_user->ID ) . "',is_cancelled='1',cancelled_reason='" . esc_sql( $reason ) . "' WHERE id=" . intval( $cancelc ) );
     $message = __( 'Item cancelled', 'appointment-booking-calendar' );
 
-    $item       = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' WHERE id=' . intval( $cancelc ) );
-    $app_source = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_TABLE_NAME . ' WHERE id=' . intval( $item->reference ) );
-    $params     = unserialize( $app_source->buffered_date );
-    if ( 'html' === cpabc_get_option( 'cncustomer_emailformat' ) ) {
-        $content_type = "Content-Type: text/html; charset=utf-8\n";
-    } else {
-        $content_type = "Content-Type: text/plain; charset=utf-8\n";
+    $item = $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . ' WHERE id=' . intval( $cancelc ) );
+    if ( $item ) {
+        $app_source = ! empty( $item->reference )
+            ? $wpdb->get_row( 'SELECT * FROM ' . CPABC_APPOINTMENTS_TABLE_NAME . ' WHERE id=' . intval( $item->reference ) )
+            : null;
+
+        $params = ( $app_source && isset( $app_source->buffered_date ) )
+            ? maybe_unserialize( $app_source->buffered_date )
+            : array();
+        if ( ! is_array( $params ) ) {
+            $params = array();
+        }
+
+        if ( 'html' === cpabc_get_option( 'cncustomer_emailformat' ) ) {
+            $content_type = "Content-Type: text/html; charset=utf-8\n";
+        } else {
+            $content_type = "Content-Type: text/plain; charset=utf-8\n";
+        }
+
+        $desc_customer = isset( $item->description_customer ) ? (string) $item->description_customer : '';
+        $email_tpl     = (string) cpabc_get_option( 'cemail_notification_to_customer', '' );
+        $email_content = str_replace( '%INFORMATION%', str_replace( '<br />', "\n", $desc_customer ), $email_tpl );
+
+        $params['ITEMNUMBER'] = $cancelc;
+        foreach ( $params as $itemr => $value ) {
+            $replacement   = is_array( $value ) ? implode( ', ', $value ) : (string) $value;
+            $email_content = str_replace( '<%' . $itemr . '%>', $replacement, $email_content );
+            $email_content = str_replace( '%' . $itemr . '%', $replacement, $email_content );
+        }
+        $email_content = str_replace( '%CALENDAR%', (string) cpabc_get_option( 'uname', '' ), $email_content );
+        $email_content = str_replace( '%cancelreason%', $reason, $email_content );
     }
-    $email_content        = str_replace( '%INFORMATION%', str_replace( '<br />', "\n", $item->description_customer ), cpabc_get_option( 'cemail_notification_to_customer' ) );
-    $params['ITEMNUMBER'] = $cancelc;
-    foreach ( $params as $itemr => $value ) {
-        $email_content = str_replace( '<%' . $itemr . '%>', ( is_array( $value ) ? ( implode( ', ', $value ) ) : ( $value ) ), $email_content );
-        $email_content = str_replace( '%' . $itemr . '%', ( is_array( $value ) ? ( implode( ', ', $value ) ) : ( $value ) ), $email_content );
-    }
-    $email_content = str_replace( '%CALENDAR%', cpabc_get_option( 'uname' ), $email_content );
-    $email_content = str_replace( '%cancelreason%', sanitize_text_field( wp_unslash( $_GET['reason'] ) ), $email_content );
 } elseif ( isset( $_GET['nocancel'] ) && $_GET['nocancel'] !== '' ) {
     cpabc_bklist_verify_nonce();
     $wpdb->query( 'UPDATE `' . CPABC_APPOINTMENTS_CALENDARS_TABLE_NAME . "` SET who_edited='" . esc_sql( $current_user->ID ) . "',is_cancelled='0' WHERE id=" . intval( $_GET['nocancel'] ) );
@@ -404,6 +422,117 @@ if ( cpabc_appointment_is_administrator() || ( isset( $mycalendarrows[0] ) && (i
         height: 17px;
         vertical-align: middle;
     }
+    /* Highlighted Booking Date cell */
+    .cpabc-booking-date-box {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 6px 10px;
+        background: #f0f6fc;
+        border: 1px solid #c5d9ed;
+        border-left: 4px solid #2271b1;
+        border-radius: 4px;
+        min-width: 118px;
+        box-sizing: border-box;
+    }
+    .cpabc-booking-date-main {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #1d2327;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+    .cpabc-booking-date-day {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #2271b1;
+        background: #ffffff;
+        border: 1px solid #c5d9ed;
+        border-radius: 3px;
+        padding: 1px 4px;
+        line-height: 1.2;
+    }
+    .cpabc-booking-date-time {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #135e96;
+        line-height: 1.2;
+    }
+    .cpabc-booking-date-time .dashicons {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #2271b1;
+    }
+
+    /* Email badge in Title column */
+    .cpabc-title-email {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 5px;
+        padding: 4px 8px;
+        background: #f6f7f7;
+        border: 1px solid #dcdcde;
+        border-radius: 4px;
+        color: #2271b1;
+        font-weight: 500;
+        font-size: 12.5px;
+        line-height: 1.35;
+        text-decoration: none;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .cpabc-title-email:hover,
+    .cpabc-title-email:focus {
+        background: #f0f6fc;
+        border-color: #2271b1;
+        color: #135e96;
+    }
+    .cpabc-title-email .dashicons {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+        margin-top: 1px;
+        flex-shrink: 0;
+        color: #2271b1;
+    }
+    .cpabc-title-text {
+        font-weight: 500;
+        color: #1d2327;
+    }
+
+    /* Cancelled row overrides */
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-booking-date-box {
+        background: #fff5f5;
+        border-color: #f0b8b8;
+        border-left-color: #d63638;
+    }
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-booking-date-main,
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-booking-date-time {
+        color: #b32d2e;
+        text-decoration: line-through;
+    }
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-booking-date-day {
+        color: #b32d2e;
+        border-color: #f0b8b8;
+    }
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-booking-date-time .dashicons,
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-title-email .dashicons {
+        color: #d63638;
+    }
+    .cpabc-orders-list tr.cpabc_cancelled .cpabc-title-email {
+        background: #fff5f5;
+        border-color: #f0b8b8;
+        color: #b32d2e;
+    }    
     .cpabc-desc-content {
         line-height: 1.4em;
         overflow-wrap: anywhere;
@@ -685,8 +814,8 @@ if ( cpabc_appointment_is_administrator() || ( isset( $mycalendarrows[0] ) && (i
                             <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
                                 <th scope="col" class="manage-column" style="width:125px;"><?php esc_html_e( 'Submission Time', 'appointment-booking-calendar' ); ?></th>
                             <?php endif; ?>
-                            <th scope="col" class="manage-column" style="width:135px;"><?php esc_html_e( 'Date', 'appointment-booking-calendar' ); ?></th>
-                            <th scope="col" class="manage-column" style="width:160px;"><?php esc_html_e( 'Title', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column" style="width:155px;"><?php esc_html_e( 'Date', 'appointment-booking-calendar' ); ?></th>
+                            <th scope="col" class="manage-column" style="width:190px;"><?php esc_html_e( 'Title', 'appointment-booking-calendar' ); ?></th>
                             <th scope="col" class="manage-column"><?php esc_html_e( 'Description', 'appointment-booking-calendar' ); ?></th>
                             <th scope="col" class="manage-column cpabc-col-compact" style="width:48px;" title="<?php esc_attr_e( 'Quantity', 'appointment-booking-calendar' ); ?>"><?php esc_html_e( 'Qty', 'appointment-booking-calendar' ); ?></th>
                             <th scope="col" class="manage-column cpnopr" style="width:205px;"><?php esc_html_e( 'Options', 'appointment-booking-calendar' ); ?></th>
@@ -713,8 +842,41 @@ if ( cpabc_appointment_is_administrator() || ( isset( $mycalendarrows[0] ) && (i
                                 <?php if ( 'id DESC' === $orderby || 'id ASC' === $orderby ) : ?>
                                     <td><?php echo isset( $event->time ) ? esc_html( date( $format, strtotime( $event->time ) ) ) : ''; ?></td>
                                 <?php endif; ?>
-                                <td><?php echo esc_html( substr( $event->datatime, 0, 16 ) ); ?></td>
-                                <td><?php echo esc_html( $event->title ); ?></td>
+                                <?php
+                                $dt_raw         = trim( (string) $event->datatime );
+                                $booking_date   = substr( $dt_raw, 0, 10 );
+                                $booking_time   = substr( $dt_raw, 11, 5 );
+                                $booking_ts     = '' !== $dt_raw ? strtotime( $dt_raw ) : false;
+                                $booking_day    = $booking_ts ? date_i18n( 'D', $booking_ts ) : '';
+                                $title_raw      = trim( (string) $event->title );
+                                $is_email_title = ( '' !== $title_raw && is_email( $title_raw ) );
+                                ?>
+                                <td>
+                                    <div class="cpabc-booking-date-box">
+                                        <div class="cpabc-booking-date-main">
+                                            <?php if ( '' !== $booking_day ) : ?>
+                                                <span class="cpabc-booking-date-day"><?php echo esc_html( $booking_day ); ?></span>
+                                            <?php endif; ?>
+                                            <span><?php echo esc_html( $booking_date ); ?></span>
+                                        </div>
+                                        <?php if ( '' !== $booking_time ) : ?>
+                                            <div class="cpabc-booking-date-time">
+                                                <span class="dashicons dashicons-clock" aria-hidden="true"></span>
+                                                <span><?php echo esc_html( $booking_time ); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td>
+                                    <?php if ( $is_email_title ) : ?>
+                                        <a href="<?php echo esc_url( 'mailto:' . $title_raw ); ?>" class="cpabc-title-email" title="<?php echo esc_attr( sprintf( __( 'Send email to %s', 'appointment-booking-calendar' ), $title_raw ) ); ?>">
+                                            <span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+                                            <span><?php echo esc_html( $title_raw ); ?></span>
+                                        </a>
+                                    <?php else : ?>
+                                        <span class="cpabc-title-text"><?php echo esc_html( $title_raw ); ?></span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <div id="cpabc_desc_<?php echo intval( $event->id ); ?>" class="cpabc-desc-content<?php echo $is_long_desc ? ' cpabc-desc-collapsed' : ''; ?>">
                                         <?php echo wp_kses_post( str_replace( "\n", '<br />', $desc_raw ) ); ?>

@@ -5,7 +5,7 @@ Tags: appointment, booking, calendar, appointment calendar, booking calendar
 Requires at least: 5.0
 Requires PHP: 7.0
 Tested up to: 7.0
-Stable tag: 1.4.10
+Stable tag: 1.4.11
 License: GPLv2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -303,9 +303,13 @@ For more information about the commercial versions, visit: https://abc.dwbooster
 
 == Changelog ==
 
+= 1.4.11 =
+* Bookings list improvements
+* Excluded cancelled items from Schedule Calendar View
+
 = 1.4.10 =
 * PayPal IPN logs section
-* Stronger check for admin users with access to add bookings
+* Improved permission checks for admin users when adding bookings. Thanks to Md Shofiur Rahman from Pentest Testing Corp for the responsible disclosure.
 
 = 1.4.09 =
 * Modernized schedule calendar view
@@ -345,6 +349,6 @@ For more information about the commercial versions, visit: https://abc.dwbooster
 
 == Upgrade Notice ==
 
-= 1.4.10 =
-* PayPal IPN logs section
-* Stronger check for admin users with access to add bookings
+= 1.4.11 =
+* Bookings list improvements
+* Excluded cancelled items from Schedule Calendar View

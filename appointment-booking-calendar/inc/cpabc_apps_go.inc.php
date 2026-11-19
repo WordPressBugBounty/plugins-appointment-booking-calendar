@@ -1439,8 +1439,13 @@ function cpabc_appointments_calendar_load2() {
     
 
     
-    $query = "SELECT * FROM ".CPABC_TDEAPP_CALENDAR_DATA_TABLE." where ".CPABC_TDEAPP_DATA_IDCALENDAR."='".esc_sql($calid)."' ORDER BY ".CPABC_TDEAPP_DATA_DATETIME." ASC";
-    $row_array = $wpdb->get_results($query,ARRAY_A);
+    $where_extra = '';
+    if ( isset( $_GET['cpabc_action'] ) && $_GET['cpabc_action'] === 'mvparse' ) {
+        $where_extra = " AND (is_cancelled IS NULL OR is_cancelled <> '1')";
+    }
+
+    $query = "SELECT * FROM " . CPABC_TDEAPP_CALENDAR_DATA_TABLE . " WHERE " . CPABC_TDEAPP_DATA_IDCALENDAR . "='" . esc_sql( $calid ) . "'" . $where_extra . " ORDER BY " . CPABC_TDEAPP_DATA_DATETIME . " ASC";
+    $row_array = $wpdb->get_results( $query, ARRAY_A );
     
     if (isset($_GET["cpabc_action"]) && $_GET["cpabc_action"] == 'mvparse' && is_admin() && current_user_can('edit_posts'))
     {
